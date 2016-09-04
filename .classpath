@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/Users/Matthew/Desktop/Programming/Java/Libraries/jaudiotagger/jaudiotagger-2.2.6-SNAPSHOT.jar" sourcepath="D:/Users/Matthew/Desktop/Programming/Java/Libraries/jaudiotagger/jaudiotagger-2.2.6-SNAPSHOT-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/D:/Users/Matthew/Desktop/Programming/Java/Libraries/jaudiotagger/jaudiotagger-2.2.6-SNAPSHOT-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.fx.ide.jdt.core.JAVAFX_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/Users/Matthew/Desktop/Programming/Java/Libraries/controlsfx/controlsfx-8.40.11/controlsfx-8.40.11.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
