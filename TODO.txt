@@ -1,0 +1,7 @@
+TODO:
+-Unload AudioSource when not needed to provide a low memory profile
+-Finish Album tab
+-Make Artists tab
+-Make Genres tab
+-Make Playlists tab
+-Make viewer for queue
