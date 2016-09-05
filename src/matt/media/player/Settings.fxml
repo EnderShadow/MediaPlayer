@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -18,13 +19,27 @@
                   <Font size="14.0" />
                </font>
             </Label>
-            <HBox spacing="10.0">
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
                <children>
                   <TextField fx:id="musicDirectory" editable="false" prefHeight="25.0" prefWidth="284.0" />
                   <Button mnemonicParsing="false" onAction="#changeMediaDir" prefHeight="25.0" prefWidth="78.0" text="Change" />
                </children>
             </HBox>
-            <Button mnemonicParsing="false" onAction="#resetCache" text="Reset Cache" />
+            <HBox alignment="CENTER_LEFT" spacing="5.0">
+               <children>
+                  <CheckBox fx:id="disableCache" mnemonicParsing="false" text="Disable cache" />
+                  <Button mnemonicParsing="false" onAction="#deleteCache" text="Delete Cache" />
+                  <Button fx:id="rebuildCacheButton" mnemonicParsing="false" onAction="#rebuildCache" text="Rebuild Cache" />
+               </children>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" spacing="5.0">
+               <children>
+                  <CheckBox fx:id="imagesInCache" mnemonicParsing="false" selected="true" text="Save images to cache" />
+                  <Label prefHeight="17.0" prefWidth="45.0" text="Spacer" visible="false" />
+                  <Label text="Cache image size" />
+                  <TextField fx:id="cacheImageSize" prefHeight="25.0" prefWidth="50.0" text="100" />
+               </children>
+            </HBox>
          </children>
          <padding>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

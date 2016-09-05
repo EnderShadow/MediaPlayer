@@ -1,10 +1,7 @@
 package matt.media.player;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -42,6 +39,8 @@ public class AudioSource implements Observable
 			Player.controller.playbackLocationSlider.valueProperty().set(media.getCurrentTime().toMillis() / media.getTotalDuration().toMillis());
 	};
 	
+	private ObjectProperty<Status> status = new SimpleObjectProperty<>(Status.READY);
+	
 	private StringProperty title = new SimpleStringProperty(null);
 	private StringProperty artist = new SimpleStringProperty("Unknown");
 	private StringProperty album = new SimpleStringProperty("Unknown");
@@ -53,35 +52,15 @@ public class AudioSource implements Observable
 	private IntegerProperty trackCount = new SimpleIntegerProperty(0);
 	private IntegerProperty trackNumber = new SimpleIntegerProperty(0);
 	private IntegerProperty year = new SimpleIntegerProperty(0);
+	private ObjectProperty<Duration> duration = new SimpleObjectProperty<>(Duration.ZERO);
 	
 	private AudioSource() {}
 	
 	public AudioSource(URI location)
 	{
 		uri = location;
-		mediaSource = new Media(uri.toString());
-		mediaSource.getMetadata().addListener((MapChangeListener<String, Object>) change -> {
-			if(change.getKey().toLowerCase().equals("title") && !((String) change.getValueAdded()).isEmpty())
-				title.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("artist"))
-				artist.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("album"))
-				album.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("genre"))
-				genre.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("album artist"))
-				albumArtist.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("image"))
-				image.set(SwingFXUtils.toFXImage(Util.squareImage(SwingFXUtils.fromFXImage((Image) change.getValueAdded(), null)), null));
-			else if(change.getKey().toLowerCase().equals("track count"))
-				trackCount.set((Integer) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("track number"))
-				trackNumber.set((Integer) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("year"))
-				year.set((Integer) change.getValueAdded());
-			//System.out.println(change.getKey() + ": " + change.getValueAdded());
-		});
-		media = new MediaPlayer(mediaSource);
+		
+		init();
 		
 //		try
 //		{
@@ -104,15 +83,59 @@ public class AudioSource implements Observable
 //		}
 		if(title.get() == null)
 			title.set(uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1, uri.getPath().lastIndexOf(".")));
-		
-		media.volumeProperty().bind(Player.controller.volumeSlider.valueProperty());
-		
-		media.setOnEndOfMedia(Player::endOfSongReached);
 	}
 	
 	public AudioSource(String location) throws URISyntaxException
 	{
 		this(new URI(location));
+	}
+	
+	public void init()
+	{
+		if(mediaSource == null)
+		{
+			mediaSource = new Media(uri.toString());
+			mediaSource.getMetadata().addListener((MapChangeListener<String, Object>) change -> {
+				if(change.getKey().toLowerCase().equals("title") && !((String) change.getValueAdded()).isEmpty())
+					title.set((String) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("artist"))
+					artist.set((String) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("album"))
+					album.set((String) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("genre"))
+					genre.set((String) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("album artist"))
+					albumArtist.set((String) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("image"))
+					image.set(SwingFXUtils.toFXImage(Util.squareImage(SwingFXUtils.fromFXImage((Image) change.getValueAdded(), null)), null));
+				else if(change.getKey().toLowerCase().equals("track count"))
+					trackCount.set((Integer) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("track number"))
+					trackNumber.set((Integer) change.getValueAdded());
+				else if(change.getKey().toLowerCase().equals("year"))
+					year.set((Integer) change.getValueAdded());
+				//System.out.println(change.getKey() + ": " + change.getValueAdded());
+			});
+			media = new MediaPlayer(mediaSource);
+			media.volumeProperty().bind(Player.controller.volumeSlider.valueProperty());
+			media.setOnEndOfMedia(Player::endOfSongReached);
+			status.bind(media.statusProperty());
+			duration.bind(mediaSource.durationProperty());
+		}
+	}
+	
+	public void dispose()
+	{
+		if(media != null)
+		{
+			status.unbind();
+			status.set(Status.READY);
+			duration.unbind();
+			mediaSource = null;
+			media.volumeProperty().unbind();
+			media.dispose();
+			media = null;
+		}
 	}
 	
 	public MediaPlayer getMediaPlayer()
@@ -127,7 +150,7 @@ public class AudioSource implements Observable
 	
 	public ReadOnlyObjectProperty<Duration> durationProperty()
 	{
-		return mediaSource.durationProperty();
+		return duration;
 	}
 	
 	public StringProperty titleProperty()
@@ -217,21 +240,23 @@ public class AudioSource implements Observable
 	
 	public boolean isPlaying()
 	{
-		return media != null ? media.getStatus() == Status.PLAYING : false;
+		return status.get() == Status.PLAYING;
 	}
 	
 	public boolean isPaused()
 	{
-		return media != null ? media.getStatus() == Status.PAUSED : false;
+		return status.get() == Status.PAUSED;
 	}
 	
 	public boolean hasEnded()
 	{
-		return media != null ? media.getStopTime() == media.getCurrentTime() : false;
+		return media != null ? media.getStopTime().equals(media.getCurrentTime()) : false;
 	}
 	
 	public void play()
 	{
+		if(mediaSource == null)
+			init();
 		media.currentTimeProperty().addListener(timeChangeListener);
 		Player.playing.set(true);
 		media.play();
@@ -240,6 +265,8 @@ public class AudioSource implements Observable
 	
 	public void pause()
 	{
+		if(mediaSource == null)
+			init();
 		Player.playing.set(false);
 		media.pause();
 		Util.concurrentForEach(listeners, listener -> listener.invalidated(this));
@@ -247,6 +274,8 @@ public class AudioSource implements Observable
 	
 	public void stop()
 	{
+		if(mediaSource == null)
+			init();
 		media.currentTimeProperty().removeListener(timeChangeListener);
 		Player.playing.set(false);
 		seek(0);
@@ -257,6 +286,8 @@ public class AudioSource implements Observable
 	
 	public void seek(long millis)
 	{
+		if(mediaSource == null)
+			init();
 		media.seek(Duration.millis(millis));
 	}
 	
@@ -267,7 +298,7 @@ public class AudioSource implements Observable
 	
 	public ReadOnlyObjectProperty<Status> statusProperty()
 	{
-		return media.statusProperty();
+		return status;
 	}
 	
 	@Override
@@ -296,77 +327,78 @@ public class AudioSource implements Observable
 		listeners.remove(listener);
 	}
 	
-	public void writeToStream(OutputStream os) throws IOException
+	public void writeToFile(RandomAccessFile raf) throws IOException
 	{
-		DataOutputStream dos = os instanceof DataOutputStream ? (DataOutputStream) os : new DataOutputStream(os);
-		dos.writeUTF(uri.toString());
-		dos.writeUTF(title.get());
-		dos.writeUTF(album.get());
-		dos.writeUTF(artist.get());
-		dos.writeUTF(genre.get());
-		dos.writeUTF(albumArtist.get());
-		byte[] data = Util.toByteArray(Util.prepForCache(SwingFXUtils.fromFXImage(image.get(), null)));
-		dos.writeInt(data.length);
-		dos.write(data);
-		dos.writeInt(playCount.get());
-		dos.writeInt(rating.get());
-		dos.writeInt(trackCount.get());
-		dos.writeInt(trackNumber.get());
-		dos.writeInt(year.get());
+		raf.writeUTF(uri.toString());
+		raf.writeUTF(title.get());
+		raf.writeUTF(album.get());
+		raf.writeUTF(artist.get());
+		raf.writeUTF(genre.get());
+		raf.writeUTF(albumArtist.get());
+		if(Config.imagesInCache && Config.cacheImageSize > 0)
+		{
+			byte[] data = Util.toByteArray(Util.prepForCache(SwingFXUtils.fromFXImage(image.get(), null)));
+			raf.writeInt(data.length);
+			raf.write(data);
+		}
+		else
+		{
+			raf.writeInt(0);
+		}
+		raf.writeInt(playCount.get());
+		raf.writeInt(rating.get());
+		raf.writeInt(trackCount.get());
+		raf.writeInt(trackNumber.get());
+		raf.writeInt(year.get());
+		raf.writeInt((int) duration.get().toMillis());
 	}
 	
-	public static AudioSource readFromStream(InputStream is) throws IOException
+	public static AudioSource readFromFile(RandomAccessFile raf) throws IOException
 	{
-		DataInputStream dis = is instanceof DataInputStream ? (DataInputStream) is : new DataInputStream(is);
 		AudioSource as = new AudioSource();
 		
 		try
 		{
-			as.uri = new URI(dis.readUTF());
+			as.uri = new URI(raf.readUTF());
 		}
 		catch(URISyntaxException urise)
 		{
 			throw new IOException("Bad URI read from stream", urise);
 		}
-		as.title.set(dis.readUTF());
-		as.album.set(dis.readUTF());
-		as.artist.set(dis.readUTF());
-		as.genre.set(dis.readUTF());
-		as.albumArtist.set(dis.readUTF());
-		byte[] data = new byte[dis.readInt()];
-		dis.readFully(data);
-		as.image.set(SwingFXUtils.toFXImage(Util.fromByteArray(data), null));
-		as.playCount.set(dis.readInt());
-		as.rating.set(dis.readInt());
-		as.trackCount.set(dis.readInt());
-		as.trackNumber.set(dis.readInt());
-		as.year.set(dis.readInt());
+		as.title.set(raf.readUTF());
+		as.album.set(raf.readUTF());
+		as.artist.set(raf.readUTF());
+		as.genre.set(raf.readUTF());
+		as.albumArtist.set(raf.readUTF());
+		byte[] data = new byte[raf.readInt()];
+		if(data.length > 0)
+		{
+			if(Config.imagesInCache)
+			{
+				raf.readFully(data);
+				as.image.set(SwingFXUtils.toFXImage(Util.fromByteArray(data), null));
+			}
+			else
+			{
+				int amt = 0;
+				while(amt < data.length)
+					amt += raf.skipBytes(data.length - amt);
+				as.image.set(Util.getDefaultImage());
+			}
+		}
+		else
+		{
+			as.image.set(Util.getDefaultImage());
+		}
+		as.playCount.set(raf.readInt());
+		as.rating.set(raf.readInt());
+		as.trackCount.set(raf.readInt());
+		as.trackNumber.set(raf.readInt());
+		as.year.set(raf.readInt());
+		as.duration.set(Duration.millis(raf.readInt()));
 		
-		as.mediaSource = new Media(as.uri.toString());
-		as.mediaSource.getMetadata().addListener((MapChangeListener<String, Object>) change -> {
-			if(change.getKey().toLowerCase().equals("title") && !((String) change.getValueAdded()).isEmpty())
-				as.title.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("artist"))
-				as.artist.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("album"))
-				as.album.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("genre"))
-				as.genre.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("album artist"))
-				as.albumArtist.set((String) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("image"))
-				as.image.set(SwingFXUtils.toFXImage(Util.squareImage(SwingFXUtils.fromFXImage((Image) change.getValueAdded(), null)), null));
-			else if(change.getKey().toLowerCase().equals("track count"))
-				as.trackCount.set((Integer) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("track number"))
-				as.trackNumber.set((Integer) change.getValueAdded());
-			else if(change.getKey().toLowerCase().equals("year"))
-				as.year.set((Integer) change.getValueAdded());
-			//System.out.println(change.getKey() + ": " + change.getValueAdded());
-		});
-		as.media = new MediaPlayer(as.mediaSource);
-		as.media.volumeProperty().bind(Player.controller.volumeSlider.valueProperty());
-		as.media.setOnEndOfMedia(Player::endOfSongReached);
+		//as.init();
+		
 		as.serialized = true;
 		
 		return as;

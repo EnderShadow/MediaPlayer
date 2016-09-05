@@ -9,6 +9,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -52,6 +53,11 @@ public class UniqueSongCollection extends VBox
 	public StringProperty nameProperty()
 	{
 		return name;
+	}
+	
+	public ObservableList<AudioSource> getUnmodifiableSongList()
+	{
+		return FXCollections.unmodifiableObservableList(songs);
 	}
 	
 	public ObjectProperty<DisplayStyle> displayStyleProperty()

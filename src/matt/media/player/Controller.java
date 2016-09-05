@@ -34,6 +34,7 @@ import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.SelectionMode;
@@ -95,6 +96,11 @@ public class Controller
 	}
 	
 	@FXML
+	private Menu fileMenu;
+	@FXML
+	private Menu editMenu;
+	
+	@FXML
 	private Button playButton;
 	@FXML
 	private Polygon playButtonIcon;
@@ -148,6 +154,9 @@ public class Controller
 		SplitPane.setResizableWithParent(mediaControlPane, false);
 		
 		busyIndicator.visibleProperty().bind(Bindings.createBooleanBinding(() -> busyCount.get().get() != 0, busyCount));
+		
+		fileMenu.disableProperty().bind(busyIndicator.visibleProperty());
+		editMenu.disableProperty().bind(busyIndicator.visibleProperty());
 		
 		playButtonIcon.visibleProperty().bind(Player.playing.not());
 		pauseButtonIcon.visibleProperty().bind(Player.playing);
@@ -270,10 +279,13 @@ public class Controller
 		ratingColumn.setCellValueFactory(as -> as.getValue().ratingProperty());
 		
 		FilteredList<AudioSource> fl = MediaLibrary.songs.filtered(as -> Util.doesAudioSourceMatch(as, filterField.textProperty()));
-		filterField.addEventHandler(EventType.ROOT, evt -> fl.setPredicate(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
+		filterField.textProperty().addListener(obs -> fl.setPredicate(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
 		SortedList<AudioSource> sl = fl.sorted();
 		sl.comparatorProperty().bind(musicListTableView.comparatorProperty());
 		musicListTableView.setItems(sl);
+		musicListTableView.addEventHandler(EventType.ROOT, evt -> {
+			Util.getVisible(musicListTableView).forEach(AudioSource::init);
+		});
 	}
 	
 	public void setupAlbumListView()
@@ -300,6 +312,13 @@ public class Controller
 				}
 			});
 			return cell;
+		});
+		albumListView.addEventHandler(EventType.ROOT, evt -> {
+			Util.getVisible(albumListView).forEach(album -> {
+				List<AudioSource> songs = album.getUnmodifiableSongList();
+				songs = songs.subList(0, songs.size());
+				songs.forEach(AudioSource::init);
+			});
 		});
 	}
 	
@@ -410,7 +429,7 @@ public class Controller
 								AudioSource as2 = MediaLibrary.urlSongMap.remove(newLoc.toURI());
 								if(as2 != null)
 								{
-									as2.getMediaPlayer().dispose();
+									as2.dispose();
 									MediaLibrary.songs.remove(as2);
 								}
 							}
@@ -521,7 +540,7 @@ public class Controller
 						{
 							curFile++;
 							AudioSource temp = new AudioSource(f.toURI());
-							while(temp.getMediaPlayer().getStatus() != Status.READY && temp.getMediaPlayer().getError() == null)
+							while(temp.statusProperty().get() != Status.READY && temp.getMediaPlayer().getError() == null)
 							{
 								Thread.yield();
 							}
@@ -539,10 +558,18 @@ public class Controller
 						}
 					}
 				}
-				
-				MediaLibrary.cacheAll();
 				busyCount.get().decrementAndGet();
 				updateIndicator.call();
+				
+				if(Cache.needsRebuilding)
+				{
+					MediaLibrary.forgetToCache();
+					Cache.reset();
+				}
+				else
+				{
+					MediaLibrary.cacheAll();
+				}
 				
 				return null;
 			}

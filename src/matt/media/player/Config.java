@@ -14,6 +14,9 @@ public class Config
 	private static final String VERSION = "1.0.0";
 	
 	public static File mediaDirectory = new File(System.getProperty("user.home") + File.separator + "MediaPlayer" + File.separator + "Media");
+	public static boolean cacheDisable = false;
+	public static boolean imagesInCache = true;
+	public static int cacheImageSize = 100;
 	
 	public static void load()
 	{
@@ -41,6 +44,15 @@ public class Config
 					case "mediaDirectory":
 						mediaDirectory = new File(line[1].trim());
 						break;
+					case "cacheDisable":
+						cacheDisable = Boolean.parseBoolean(line[1].trim());
+						break;
+					case "imagesInCache":
+						imagesInCache = Boolean.parseBoolean(line[1].trim());
+						break;
+					case "cacheImageSize":
+						cacheImageSize = Integer.parseInt(line[1].trim());
+						break;
 					default:
 						System.out.println("Unknown setting in config\t" + str);
 					}
@@ -61,6 +73,9 @@ public class Config
 		List<String> configData = new ArrayList<String>();
 		configData.add("version: " + VERSION);
 		configData.add("mediaDirectory: " + mediaDirectory.getAbsolutePath());
+		configData.add("cacheDisable: " + cacheDisable);
+		configData.add("imagesInCache: " + imagesInCache);
+		configData.add("cacheImageSize: " + cacheImageSize);
 		
 		try
 		{

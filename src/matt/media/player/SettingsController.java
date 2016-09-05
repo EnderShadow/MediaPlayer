@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
@@ -12,12 +15,47 @@ import javafx.stage.Window;
 public class SettingsController
 {
 	public Window window;
-	public TextField musicDirectory;
-	public DirectoryChooser directoryChooser = new DirectoryChooser();
+	
+	private DirectoryChooser directoryChooser = new DirectoryChooser();
+	
+	@FXML
+	private TextField musicDirectory;
+	@FXML
+	private CheckBox disableCache;
+	@FXML
+	private CheckBox imagesInCache;
+	@FXML
+	private Button rebuildCacheButton;
+	@FXML
+	private TextField cacheImageSize;
 	
 	public void initialize()
 	{
 		musicDirectory.setText(Config.mediaDirectory.getAbsolutePath());
+		disableCache.setOnAction(evt -> {
+			Config.cacheDisable = !Config.cacheDisable;
+			Config.updateConfig();
+		});
+		imagesInCache.setOnAction(evt -> {
+			Config.imagesInCache = !Config.imagesInCache;
+			Config.updateConfig();
+		});
+		cacheImageSize.setText(Integer.toString(Config.cacheImageSize));
+		cacheImageSize.setOnAction(evt -> {
+			try
+			{
+				Config.cacheImageSize = Integer.parseInt(cacheImageSize.getText());
+			}
+			catch(NumberFormatException nfe)
+			{
+				Config.cacheImageSize = 0;
+			}
+			Config.updateConfig();
+		});
+		
+		rebuildCacheButton.disableProperty().bind(disableCache.selectedProperty());
+		imagesInCache.disableProperty().bind(disableCache.selectedProperty());
+		cacheImageSize.disableProperty().bind(disableCache.selectedProperty().or(imagesInCache.selectedProperty().not()));
 	}
 	
 	public void changeMediaDir()
@@ -53,8 +91,13 @@ public class SettingsController
 		}
 	}
 	
-	public void resetCache()
+	public void rebuildCache()
 	{
 		Cache.reset();
+	}
+	
+	public void deleteCache()
+	{
+		Cache.delete();
 	}
 }

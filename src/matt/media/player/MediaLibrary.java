@@ -15,7 +15,7 @@ import javafx.collections.ObservableList;
 public class MediaLibrary
 {
 	private static final List<AudioSource> needToCache = new ArrayList<AudioSource>();
-	private static final Object albumListLock = new Object();
+	private static final Object songListLock = new Object();
 	
 	public static final ObservableList<AudioSource> songs = FXCollections.observableList(Collections.synchronizedList(new ArrayList<>(10000)));
 	public static Map<URI, AudioSource> urlSongMap = new ConcurrentHashMap<URI, AudioSource>(10000);
@@ -24,24 +24,22 @@ public class MediaLibrary
 	
 	public static void addSong(AudioSource as)
 	{
-		songs.add(as);
-		urlSongMap.putIfAbsent(as.getURI(), as);
-		boolean contains;
-		synchronized(albumListLock)
+		synchronized(songListLock)
 		{
-			contains = albums.stream().map(album -> album.nameProperty().get()).noneMatch(albumName -> albumName.equals(as.albumProperty().get()));
+			songs.add(as);
 		}
-		if(contains)
-		{
-			UniqueSongCollection album = new UniqueSongCollection(as.albumProperty().get(), songs, null, (as1, as2) -> Integer.compare(as1.trackNumberProperty().get(), as2.trackNumberProperty().get()));
-			album.setBelongs(as2 -> as2.albumProperty().get().equals(album.nameProperty().get()));
-			Platform.runLater(() -> {
-				synchronized(albumListLock)
+		urlSongMap.putIfAbsent(as.getURI(), as);
+		Platform.runLater(() -> {
+			synchronized(songListLock)
+			{
+				if(albums.stream().map(album -> album.nameProperty().get()).noneMatch(albumName -> albumName.equals(as.albumProperty().get())))
 				{
+					UniqueSongCollection album = new UniqueSongCollection(as.albumProperty().get(), songs, null, (as1, as2) -> Integer.compare(as1.trackNumberProperty().get(), as2.trackNumberProperty().get()));
+					album.setBelongs(as2 -> as2.albumProperty().get().equals(album.nameProperty().get()));
 					albums.add(album);
 				}
-			});
-		}
+			}
+		});
 		if(!as.wasSeriallyLoaded())
 		{
 			needToCache.add(as);
@@ -52,9 +50,12 @@ public class MediaLibrary
 	{
 		System.out.println("Removing song " + as);
 		Player.queueProperty.get().removeSong(as);
-		songs.remove(as);
+		synchronized(songListLock)
+		{
+			songs.remove(as);
+		}
 		urlSongMap.remove(as.getURI());
-		as.getMediaPlayer().dispose();
+		as.dispose();
 		Cache.remove(as);
 		if(deleteSong)
 		{
@@ -77,5 +78,10 @@ public class MediaLibrary
 				Cache.cacheAll(temp);
 			}).start();
 		}
+	}
+	
+	public static void forgetToCache()
+	{
+		needToCache.clear();
 	}
 }

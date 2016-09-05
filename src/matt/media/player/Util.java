@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +13,14 @@ import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 
+import org.controlsfx.control.GridView;
+
+import com.sun.javafx.scene.control.skin.TableViewSkin;
+import com.sun.javafx.scene.control.skin.VirtualFlow;
+
+import impl.org.controlsfx.skin.GridViewSkin;
 import javafx.beans.property.StringProperty;
+import javafx.scene.control.TableView;
 import javafx.scene.image.Image;
 import javafx.util.Duration;
 
@@ -20,7 +28,6 @@ public class Util
 {
 	private static String[] supportedAudioFormats = {".aif", ".aiff", ".m3u8", ".mp3", ".m4a", ".wav"};
 	private static Image defaultImage;
-	private static final int IMAGE_SIZE_FOR_CACHE = 15;
 	
 	final static int[] illegalChars = {34, 60, 62, 124, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 58, 42, 63, 92, 47};
 	
@@ -135,12 +142,12 @@ public class Util
 	
 	public static BufferedImage prepForCache(BufferedImage bi)
 	{
-		if(bi.getWidth() <= IMAGE_SIZE_FOR_CACHE)
+		if(bi.getWidth() <= Config.cacheImageSize)
 			return bi;
 		
-		BufferedImage temp = new BufferedImage(IMAGE_SIZE_FOR_CACHE, IMAGE_SIZE_FOR_CACHE, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage temp = new BufferedImage(Config.cacheImageSize, Config.cacheImageSize, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = temp.createGraphics();
-		g.drawImage(bi.getScaledInstance(IMAGE_SIZE_FOR_CACHE, IMAGE_SIZE_FOR_CACHE, BufferedImage.SCALE_SMOOTH), 0, 0, null);
+		g.drawImage(bi.getScaledInstance(Config.cacheImageSize, Config.cacheImageSize, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		g.dispose();
 		return temp;
 	}
@@ -150,7 +157,7 @@ public class Util
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try
 		{
-			ImageIO.write(bi, "png", baos);
+			ImageIO.write(bi, "jpg", baos);
 		}
 		catch(Exception e)
 		{
@@ -170,5 +177,36 @@ public class Util
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static <T> List<T> getVisible(GridView<T> gridView)
+	{
+		List<T> retList = new ArrayList<>();
+		GridViewSkin<?> skin = (GridViewSkin<?>) gridView.getSkin();
+		VirtualFlow<?> flow = (VirtualFlow<?>) skin.getChildren().stream().filter(n -> n instanceof VirtualFlow).findFirst().get();
+		
+		if(flow.getFirstVisibleCell() == null)
+			return retList;
+		int firstIndex = flow.getFirstVisibleCell().getIndex();
+		int lastIndex = flow.getLastVisibleCell().getIndex();
+		int cellsInRow = skin.computeMaxCellsInRow();
+		
+		retList.addAll(gridView.getItems().subList(firstIndex * cellsInRow, Math.min((lastIndex + 1) * cellsInRow, gridView.getItems().size())));
+		return retList;
+	}
+	
+	public static <T> List<T> getVisible(TableView<T> tableView)
+	{
+		List<T> retList = new ArrayList<>();
+		TableViewSkin<?> skin = (TableViewSkin<?>) tableView.getSkin();
+		VirtualFlow<?> flow = (VirtualFlow<?>) skin.getChildren().stream().filter(n -> n instanceof VirtualFlow).findFirst().get();
+		
+		if(flow.getFirstVisibleCell() == null)
+			return retList;
+		int firstIndex = flow.getFirstVisibleCell().getIndex();
+		int lastIndex = flow.getLastVisibleCell().getIndex();
+		
+		retList.addAll(tableView.getItems().subList(firstIndex, lastIndex + 1));
+		return retList;
 	}
 }
