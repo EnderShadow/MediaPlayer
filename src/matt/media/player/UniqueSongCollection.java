@@ -1,6 +1,8 @@
 package matt.media.player;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Predicate;
 
 import javafx.application.Platform;
@@ -73,6 +75,25 @@ public class UniqueSongCollection extends VBox
 	public void setComparator(Comparator<AudioSource> sorter)
 	{
 		((SortedList<AudioSource>) songs).setComparator(sorter);
+	}
+	
+	public List<AudioSource> getVisibleSongs()
+	{
+		List<AudioSource> ret = new ArrayList<AudioSource>();
+		switch(displayStyle.get())
+		{
+		case SINGLE:
+			if(!songs.isEmpty())
+				ret.add(songs.get(0));
+			break;
+		case ALBUM:
+			ret.addAll(songs.subList(0, Math.min(songs.size(), 5)));
+			break;
+		case QUAD:
+			ret.addAll(songs.subList(0, Math.min(songs.size(), 4)));
+			break;
+		}
+		return ret;
 	}
 	
 	private void setupDisplay()

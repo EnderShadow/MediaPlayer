@@ -132,22 +132,20 @@ public class Util
 			return bi;
 		
 		int newSize = Math.max(bi.getHeight(), bi.getWidth());
+		
+		java.awt.Image img = bi;
 		if(Config.maxImageSize > 0 && Config.maxImageSize < newSize)
 		{
 			double scale = (double) Config.maxImageSize / newSize;
-			BufferedImage temp = new BufferedImage(Config.maxImageSize, Config.maxImageSize, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g = temp.createGraphics();
-			g.drawImage(bi.getScaledInstance((int) (bi.getWidth() * scale), (int) (bi.getHeight() * scale), BufferedImage.SCALE_SMOOTH), 0, 0, null);
-			g.dispose();
+			img = bi.getScaledInstance((int) Math.round(bi.getWidth() * scale), (int) Math.round(bi.getHeight() * scale), BufferedImage.SCALE_SMOOTH);
 			newSize = Config.maxImageSize;
-			bi = temp;
 		}
 		
 		BufferedImage newImage = new BufferedImage(newSize, newSize, BufferedImage.TYPE_INT_ARGB);
-		int xOffset = (newSize - bi.getWidth()) / 2;
-		int yOffset = (newSize - bi.getHeight()) / 2;
+		int xOffset = (newSize - img.getWidth(null)) / 2;
+		int yOffset = (newSize - img.getHeight(null)) / 2;
 		Graphics2D g = newImage.createGraphics();
-		g.drawImage(bi, xOffset, yOffset, null);
+		g.drawImage(img, xOffset, yOffset, null);
 		g.dispose();
 		return newImage;
 	}

@@ -18,6 +18,7 @@ public class Config
 	public static boolean imagesInCache = true;
 	public static int cacheImageSize = 100;
 	public static int maxImageSize = 300;
+	public static boolean unloadInvisibleSongs = true;
 	
 	public static void load()
 	{
@@ -56,6 +57,10 @@ public class Config
 						break;
 					case "maxImageSize":
 						maxImageSize = Integer.parseInt(line[1].trim());
+						break;
+					case "unloadInvisibleSongs":
+						unloadInvisibleSongs = Boolean.parseBoolean(line[1].trim());
+						break;
 					default:
 						System.out.println("Unknown setting in config\t" + str);
 					}
@@ -80,6 +85,11 @@ public class Config
 		configData.add("imagesInCache: " + imagesInCache);
 		configData.add("cacheImageSize: " + cacheImageSize);
 		configData.add("maxImageSize: " + maxImageSize);
+		configData.add("unloadInvisibleSongs: " + unloadInvisibleSongs);
+		
+		System.out.println("Config updated");
+		configData.forEach(System.out::println);
+		System.out.println();
 		
 		try
 		{

@@ -40,6 +40,7 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -109,6 +110,9 @@ public class Controller
 	
 	@FXML
 	private SplitPane splitPane;
+	
+	public TabPane tabPane;
+	
 	@FXML
 	private AnchorPane mediaControlPane;
 	@FXML
@@ -144,8 +148,8 @@ public class Controller
 	
 	@FXML
 	private TextField filterField;
-	@FXML
-	private TableView<AudioSource> musicListTableView;
+	
+	public TableView<AudioSource> musicListTableView;
 	
 	public GridView<UniqueSongCollection> albumListView;
 	
@@ -292,7 +296,6 @@ public class Controller
 	{
 		albumListView.cellWidthProperty().bind(albumListView.widthProperty().subtract(140).divide(6));
 		albumListView.cellHeightProperty().bind(albumListView.cellWidthProperty().multiply(1.25D));
-		albumListView.setItems(MediaLibrary.albums);
 		albumListView.setCellFactory(list -> {
 			GridCell<UniqueSongCollection> cell = new GridCell<UniqueSongCollection>(){
 				@Override
@@ -313,12 +316,13 @@ public class Controller
 			});
 			return cell;
 		});
+		FilteredList<UniqueSongCollection> fl = MediaLibrary.albums.filtered(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
+		filterField.textProperty().addListener(obs -> fl.setPredicate(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty()))));
+		SortedList<UniqueSongCollection> sl = fl.sorted();
+		sl.setComparator((usc1, usc2) -> usc1.nameProperty().get().compareTo(usc2.nameProperty().get()));
+		albumListView.setItems(sl);
 		albumListView.addEventHandler(EventType.ROOT, evt -> {
-			Util.getVisible(albumListView).forEach(album -> {
-				List<AudioSource> songs = album.getUnmodifiableSongList();
-				songs = songs.subList(0, songs.size());
-				songs.forEach(AudioSource::init);
-			});
+			Util.getVisible(albumListView).forEach(usc -> usc.getVisibleSongs().forEach(AudioSource::init));
 		});
 	}
 	
@@ -442,6 +446,8 @@ public class Controller
 							// for when media is instantiated on load
 							final int j = i;
 							temp.getMediaPlayer().setOnReady(() -> {
+								if(Config.unloadInvisibleSongs)
+									temp.dispose();
 								MediaLibrary.addSong(temp);
 								updateProgress(j + 1, files.size());
 								updateMessage(j + 1 + "/" + files.size());
@@ -550,11 +556,12 @@ public class Controller
 								temp.getMediaPlayer().getError().printStackTrace();
 								continue errLbl;
 							}
-							temp.dispose();
+							if(Config.unloadInvisibleSongs)
+								temp.dispose();
 							MediaLibrary.addSong(temp);
 							this.updateProgress(curFile, numFiles);
 							this.updateMessage(curFile + "/" + numFiles);
-							if(curFile % 10 == 0)
+							if(Config.unloadInvisibleSongs && curFile % 10 == 0)
 								System.gc();
 							//if(MediaLibrary.songs.size() > 50)
 							//	break tempLbl;
@@ -562,8 +569,11 @@ public class Controller
 					}
 				}
 				
-				System.gc();
-				Runtime.getRuntime().freeMemory();
+				if(Config.unloadInvisibleSongs)
+				{
+					System.gc();
+					Runtime.getRuntime().freeMemory();
+				}
 				
 				busyCount.get().decrementAndGet();
 				updateIndicator.call();

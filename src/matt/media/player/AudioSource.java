@@ -5,7 +5,9 @@ import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -16,7 +18,9 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
+import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.scene.media.Media;
@@ -26,6 +30,39 @@ import javafx.util.Duration;
 
 public class AudioSource implements Observable
 {
+	/**
+	 * This should only be accessed by the listener of loadedAudio
+	 */
+	private static List<AudioSource> backingLoadedAudio = new ArrayList<>(30);
+	private static ObservableList<AudioSource> loadedAudio = FXCollections.observableList(backingLoadedAudio);
+	
+	static
+	{
+		loadedAudio.addListener((InvalidationListener) obs -> {
+			synchronized(loadedAudio)
+			{
+				String selectedTab = Player.controller.tabPane.getSelectionModel().getSelectedItem().textProperty().get();
+				List<AudioSource> temp = Collections.emptyList();
+				if(selectedTab.equals("Music") && backingLoadedAudio.size() > 20)
+				{
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioFile().equals(as))
+							.filter(as -> as.media.getStatus() == Status.READY)
+							.filter(as -> !Util.getVisible(Player.controller.musicListTableView).contains(as))
+							.limit(backingLoadedAudio.size() - 20).collect(Collectors.toList());
+				}
+				else if(selectedTab.equals("Albums") && backingLoadedAudio.size() > Util.getVisible(Player.controller.albumListView).size() * 2)
+				{
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioFile().equals(as))
+							.filter(as -> as.media.getStatus() == Status.READY)
+							.filter(as -> Util.getVisible(Player.controller.albumListView).stream().noneMatch(usc -> usc.getVisibleSongs().contains(as)))
+							.limit(backingLoadedAudio.size() - Util.getVisible(Player.controller.albumListView).size() * 2).collect(Collectors.toList());
+				}
+				backingLoadedAudio.removeAll(temp);
+				temp.forEach(AudioSource::dispose);
+			}
+		});
+	}
+	
 	private List<InvalidationListener> listeners = new ArrayList<InvalidationListener>();
 	
 	private URI uri;
@@ -33,6 +70,7 @@ public class AudioSource implements Observable
 	private Media mediaSource;
 	
 	private boolean serialized = false;
+	private boolean metadataLoaded = false;
 	
 	private InvalidationListener timeChangeListener = obs -> {
 		if(!Player.controller.playbackLocationSlider.isValueChanging())
@@ -60,7 +98,7 @@ public class AudioSource implements Observable
 	{
 		uri = location;
 		
-		init();
+		init(false);
 		
 		if(title.get() == null)
 			title.set(uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1, uri.getPath().lastIndexOf(".")));
@@ -73,7 +111,12 @@ public class AudioSource implements Observable
 	
 	public void init()
 	{
-		if(mediaSource == null)
+		init(false);
+	}
+	
+	private void init(boolean forPlayback)
+	{
+		if(mediaSource == null && (!metadataLoaded || forPlayback))
 		{
 			mediaSource = new Media(uri.toString());
 			mediaSource.getMetadata().addListener((MapChangeListener<String, Object>) change -> {
@@ -102,6 +145,15 @@ public class AudioSource implements Observable
 			media.setOnEndOfMedia(Player::endOfSongReached);
 			status.bind(media.statusProperty());
 			duration.bind(mediaSource.durationProperty());
+			metadataLoaded = true;
+		}
+		if(mediaSource != null)
+		{
+			synchronized(loadedAudio)
+			{
+				loadedAudio.remove(this);
+				loadedAudio.add(this);
+			}
 		}
 	}
 	
@@ -109,6 +161,10 @@ public class AudioSource implements Observable
 	{
 		if(mediaSource != null)
 		{
+			synchronized(loadedAudio)
+			{
+				loadedAudio.remove(this);
+			}
 			status.unbind();
 			status.set(Status.READY);
 			duration.unbind();
@@ -237,7 +293,7 @@ public class AudioSource implements Observable
 	public void play()
 	{
 		if(mediaSource == null)
-			init();
+			init(true);
 		media.currentTimeProperty().addListener(timeChangeListener);
 		Player.playing.set(true);
 		media.play();
@@ -247,7 +303,7 @@ public class AudioSource implements Observable
 	public void pause()
 	{
 		if(mediaSource == null)
-			init();
+			init(true);
 		Player.playing.set(false);
 		media.pause();
 		Util.concurrentForEach(listeners, listener -> listener.invalidated(this));
@@ -256,7 +312,7 @@ public class AudioSource implements Observable
 	public void stop()
 	{
 		if(mediaSource == null)
-			init();
+			init(true);
 		media.currentTimeProperty().removeListener(timeChangeListener);
 		Player.playing.set(false);
 		seek(0);
@@ -268,7 +324,7 @@ public class AudioSource implements Observable
 	public void seek(long millis)
 	{
 		if(mediaSource == null)
-			init();
+			init(true);
 		media.seek(Duration.millis(millis));
 	}
 	
