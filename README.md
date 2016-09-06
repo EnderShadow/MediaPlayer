@@ -13,10 +13,3 @@ Currently working features
 Planned features  
 -Persistent playlist references  
 -See TODO.txt  
-
-Bugs  
-(This one isn't really a bug, I just haven't implemented the auto-unload feature yet)  
--Memory usage is high when:  
----Media is added for the first time  
----The cache is disabled  
----You've scrolled through a lot of your images  

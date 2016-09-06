@@ -462,6 +462,12 @@ public class Controller
 						}
 					}
 					
+					if(Config.unloadInvisibleSongs)
+					{
+						System.gc();
+						Runtime.getRuntime().freeMemory();
+					}
+					
 					MediaLibrary.cacheAll();
 					
 					return null;
