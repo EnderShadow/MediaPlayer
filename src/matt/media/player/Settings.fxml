@@ -49,6 +49,11 @@
                   </TextField>
                </children>
             </HBox>
+            <HBox alignment="CENTER_LEFT" spacing="5.0">
+               <children>
+                  <CheckBox fx:id="unloadInvisibleSongs" mnemonicParsing="false" selected="true" text="Unload invisible songs" />
+               </children>
+            </HBox>
             <Separator prefWidth="200.0" />
             <HBox alignment="CENTER_LEFT" spacing="5.0">
                <children>

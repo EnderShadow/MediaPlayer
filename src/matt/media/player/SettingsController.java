@@ -23,6 +23,8 @@ public class SettingsController
 	@FXML
 	private TextField maxImageSize;
 	@FXML
+	private CheckBox unloadInvisibleSongs;
+	@FXML
 	private CheckBox disableCache;
 	@FXML
 	private CheckBox imagesInCache;
@@ -44,6 +46,11 @@ public class SettingsController
 			{
 				Config.maxImageSize = 1;
 			}
+			Config.updateConfig();
+		});
+		unloadInvisibleSongs.setSelected(Config.unloadInvisibleSongs);
+		unloadInvisibleSongs.setOnAction(evt -> {
+			Config.unloadInvisibleSongs = !Config.unloadInvisibleSongs;
 			Config.updateConfig();
 		});
 		disableCache.setSelected(Config.cacheDisable);
