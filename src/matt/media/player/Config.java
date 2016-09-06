@@ -17,6 +17,7 @@ public class Config
 	public static boolean cacheDisable = false;
 	public static boolean imagesInCache = true;
 	public static int cacheImageSize = 100;
+	public static int maxImageSize = 300;
 	
 	public static void load()
 	{
@@ -53,6 +54,8 @@ public class Config
 					case "cacheImageSize":
 						cacheImageSize = Integer.parseInt(line[1].trim());
 						break;
+					case "maxImageSize":
+						maxImageSize = Integer.parseInt(line[1].trim());
 					default:
 						System.out.println("Unknown setting in config\t" + str);
 					}
@@ -76,6 +79,7 @@ public class Config
 		configData.add("cacheDisable: " + cacheDisable);
 		configData.add("imagesInCache: " + imagesInCache);
 		configData.add("cacheImageSize: " + cacheImageSize);
+		configData.add("maxImageSize: " + maxImageSize);
 		
 		try
 		{

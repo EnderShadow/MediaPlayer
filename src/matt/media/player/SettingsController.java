@@ -21,6 +21,8 @@ public class SettingsController
 	@FXML
 	private TextField musicDirectory;
 	@FXML
+	private TextField maxImageSize;
+	@FXML
 	private CheckBox disableCache;
 	@FXML
 	private CheckBox imagesInCache;
@@ -32,10 +34,24 @@ public class SettingsController
 	public void initialize()
 	{
 		musicDirectory.setText(Config.mediaDirectory.getAbsolutePath());
+		maxImageSize.setText(Integer.toString(Config.maxImageSize));
+		maxImageSize.setOnAction(evt -> {
+			try
+			{
+				Config.maxImageSize = Integer.parseInt(maxImageSize.getText());
+			}
+			catch(NumberFormatException nfe)
+			{
+				Config.maxImageSize = 1;
+			}
+			Config.updateConfig();
+		});
+		disableCache.setSelected(Config.cacheDisable);
 		disableCache.setOnAction(evt -> {
 			Config.cacheDisable = !Config.cacheDisable;
 			Config.updateConfig();
 		});
+		imagesInCache.setSelected(Config.imagesInCache);
 		imagesInCache.setOnAction(evt -> {
 			Config.imagesInCache = !Config.imagesInCache;
 			Config.updateConfig();

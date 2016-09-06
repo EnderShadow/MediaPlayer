@@ -550,14 +550,21 @@ public class Controller
 								temp.getMediaPlayer().getError().printStackTrace();
 								continue errLbl;
 							}
+							temp.dispose();
 							MediaLibrary.addSong(temp);
 							this.updateProgress(curFile, numFiles);
 							this.updateMessage(curFile + "/" + numFiles);
+							if(curFile % 10 == 0)
+								System.gc();
 							//if(MediaLibrary.songs.size() > 50)
 							//	break tempLbl;
 						}
 					}
 				}
+				
+				System.gc();
+				Runtime.getRuntime().freeMemory();
+				
 				busyCount.get().decrementAndGet();
 				updateIndicator.call();
 				

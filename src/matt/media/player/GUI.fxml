@@ -28,7 +28,7 @@
 <?import javafx.scene.text.Text?>
 <?import org.controlsfx.control.GridView?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="576.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="matt.media.player.Controller">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="330.0" minWidth="720.0" prefHeight="576.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="matt.media.player.Controller">
    <children>
       <MenuBar>
         <menus>

@@ -62,25 +62,6 @@ public class AudioSource implements Observable
 		
 		init();
 		
-//		try
-//		{
-//			AudioFile af = AudioFileIO.read(new File(uri));
-//			Tag tag = af.getTagOrCreateDefault();
-//			if(tag.hasField(FieldKey.ARTIST) && !tag.getFirst(FieldKey.ARTIST).trim().isEmpty())
-//				artist = tag.getFirst(FieldKey.ARTIST);
-//			if(tag.hasField(FieldKey.ALBUM) && !tag.getFirst(FieldKey.ALBUM).trim().isEmpty())
-//				album = tag.getFirst(FieldKey.ALBUM);
-//			if(tag.hasField(FieldKey.TITLE) && !tag.getFirst(FieldKey.TITLE).trim().isEmpty())
-//				title = tag.getFirst(FieldKey.TITLE);
-//			if(tag.hasField(FieldKey.GENRE) && !tag.getFirst(FieldKey.GENRE).trim().isEmpty())
-//				genre = tag.getFirst(FieldKey.GENRE);
-//			if(tag.getFirstArtwork() != null)
-//				image = SwingFXUtils.toFXImage((BufferedImage) tag.getFirstArtwork().getImage(), null);
-//		}
-//		catch(Exception e)
-//		{
-//			e.printStackTrace();
-//		}
 		if(title.get() == null)
 			title.set(uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1, uri.getPath().lastIndexOf(".")));
 	}
@@ -126,7 +107,7 @@ public class AudioSource implements Observable
 	
 	public void dispose()
 	{
-		if(media != null)
+		if(mediaSource != null)
 		{
 			status.unbind();
 			status.set(Status.READY);
@@ -396,8 +377,6 @@ public class AudioSource implements Observable
 		as.trackNumber.set(raf.readInt());
 		as.year.set(raf.readInt());
 		as.duration.set(Duration.millis(raf.readInt()));
-		
-		//as.init();
 		
 		as.serialized = true;
 		
