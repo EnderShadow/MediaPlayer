@@ -70,7 +70,7 @@ public class Controller
 	@FXML
 	private ProgressIndicator busyIndicator;
 	private ObjectProperty<AtomicInteger> busyCount = new SimpleObjectProperty<>(new AtomicInteger());
-	private VoidSupplier updateIndicator;
+	private Runnable updateIndicator;
 	private MethodHandle __DO_NOT_USE__;
 	
 	{
@@ -521,7 +521,7 @@ public class Controller
 			public Void call()
 			{
 				busyCount.get().incrementAndGet();
-				updateIndicator.call();
+				updateIndicator.run();
 				
 				File dir = Config.mediaDirectory;
 				int numFiles = Util.countFiles(dir);
@@ -540,7 +540,7 @@ public class Controller
 						if(isCancelled())
 						{
 							busyCount.get().decrementAndGet();
-							updateIndicator.call();
+							updateIndicator.run();
 							return null;
 						}
 						
@@ -582,7 +582,7 @@ public class Controller
 				}
 				
 				busyCount.get().decrementAndGet();
-				updateIndicator.call();
+				updateIndicator.run();
 				
 				if(Cache.needsRebuilding)
 				{
