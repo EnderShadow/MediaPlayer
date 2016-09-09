@@ -173,14 +173,14 @@ public class Controller
 			Player.pause();
 		});
 		playbackLocationSlider.setOnMouseReleased(evt -> {
-			Player.currentlyPlayingProperty.get().getAudioFile().seek((long) Player.currentlyPlayingProperty.get().getAudioFile().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
+			Player.currentlyPlayingProperty.get().getAudioSource().seek((long) Player.currentlyPlayingProperty.get().getAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
 			Player.play();
 		});
 		playbackLocationSlider.valueChangingProperty().addListener((InvalidationListener) obs -> {
 			if(!playbackLocationSlider.isValueChanging())
 			{
 				Player.pause();
-				Player.currentlyPlayingProperty.get().getAudioFile().seek((long) Player.currentlyPlayingProperty.get().getAudioFile().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
+				Player.currentlyPlayingProperty.get().getAudioSource().seek((long) Player.currentlyPlayingProperty.get().getAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
 				Player.play();
 			}
 		});
@@ -319,7 +319,7 @@ public class Controller
 		FilteredList<UniqueSongCollection> fl = MediaLibrary.albums.filtered(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
 		filterField.textProperty().addListener(obs -> fl.setPredicate(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty()))));
 		SortedList<UniqueSongCollection> sl = fl.sorted();
-		sl.setComparator((usc1, usc2) -> usc1.nameProperty().get().compareTo(usc2.nameProperty().get()));
+		sl.setComparator((usc1, usc2) -> usc1.nameProperty().get().compareToIgnoreCase(usc2.nameProperty().get()));
 		albumListView.setItems(sl);
 		albumListView.addEventHandler(EventType.ROOT, evt -> {
 			Util.getVisible(albumListView).forEach(usc -> usc.getVisibleSongs().forEach(AudioSource::init));
@@ -357,8 +357,8 @@ public class Controller
 	
 	public void prevSong()
 	{
-		if(Player.playing.get() && Player.currentlyPlayingProperty.get().getAudioFile().getMediaPlayer().getCurrentTime().toSeconds() > 3.0D)
-			Player.currentlyPlayingProperty.get().getAudioFile().seek(0);
+		if(Player.playing.get() && Player.currentlyPlayingProperty.get().getAudioSource().getMediaPlayer().getCurrentTime().toSeconds() > 3.0D)
+			Player.currentlyPlayingProperty.get().getAudioSource().seek(0);
 		else
 			Player.previous();
 	}

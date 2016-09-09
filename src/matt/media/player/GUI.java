@@ -27,21 +27,7 @@ public class GUI extends Application
 		primaryStage.setScene(scene);
 		Controller controller = loader.getController();
 		Task<Void> task = controller.loadMusic();
-		FileTransferDisplay audioLoad = new FileTransferDisplay("Loading Music", task.progressProperty(), task.messageProperty());
-		task.setOnRunning(evt -> {
-			//root.setDisable(true);
-			//audioLoad.display();
-		});
-		task.setOnSucceeded(evt -> {
-			//root.setDisable(false);
-			//audioLoad.hide();
-		});
-		task.setOnFailed(evt -> {
-			task.getException().printStackTrace();
-			System.exit(-1);
-		});
-		Thread t = new Thread(task);
-		t.start();
+		new Thread(task).start();
 		primaryStage.show();
 		controller.window = primaryStage;
 		controller.settingsWindow = loadSettingsWindow();

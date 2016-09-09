@@ -34,8 +34,8 @@ public class MediaLibrary
 			{
 				if(albums.stream().map(album -> album.nameProperty().get()).noneMatch(albumName -> albumName.equals(as.albumProperty().get())))
 				{
-					UniqueSongCollection album = new UniqueSongCollection(as.albumProperty().get(), songs, null, (as1, as2) -> Integer.compare(as1.trackNumberProperty().get(), as2.trackNumberProperty().get()));
-					album.setBelongs(as2 -> as2.albumProperty().get().equals(album.nameProperty().get()));
+					UniqueSongCollection album = new UniqueSongCollection(as.albumProperty().get(), as.albumArtistProperty().get(), songs, null, (as1, as2) -> Integer.compare(as1.trackNumberProperty().get(), as2.trackNumberProperty().get()));
+					album.setBelongs(as2 -> as2.albumProperty().get().equals(album.nameProperty().get()) && as2.albumArtistProperty().get().equals(album.secondaryTextProperty().get()));
 					albums.add(album);
 				}
 			}

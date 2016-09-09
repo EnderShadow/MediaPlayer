@@ -41,11 +41,13 @@ public class Player
 			{
 				if(newV != null)
 				{
-					newV.getAudioFile().statusProperty().addListener(cl);
+					AudioSource as = newV.getAudioSource();
+					as.statusProperty().addListener(cl);
+					as.playCountProperty().set(as.playCountProperty().get() + 1);
 				}
 				if(oldV != null)
 				{
-					oldV.getAudioFile().statusProperty().removeListener(cl);
+					oldV.getAudioSource().statusProperty().removeListener(cl);
 				}
 			}
 		});
@@ -66,18 +68,18 @@ public class Player
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
 		{
-			if(currentlyPlaying.getAudioFile().hasEnded())
+			if(currentlyPlaying.getAudioSource().hasEnded())
 			{
-				currentlyPlaying.getAudioFile().stop();
+				currentlyPlaying.getAudioSource().stop();
 				currentlyPlayingProperty.setValue(currentlyPlaying = currentlyPlaying.getNext());
 			}
 			if(currentlyPlaying != null)
-				currentlyPlaying.getAudioFile().play();
+				currentlyPlaying.getAudioSource().play();
 		}
 		else if(!queue.isEmpty())
 		{
 			currentlyPlayingProperty.setValue(currentlyPlaying = queue.getSong(0));
-			currentlyPlaying.getAudioFile().play();
+			currentlyPlaying.getAudioSource().play();
 		}
 	}
 	
@@ -85,7 +87,7 @@ public class Player
 	{
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
-			currentlyPlaying.getAudioFile().pause();
+			currentlyPlaying.getAudioSource().pause();
 	}
 	
 	public static void stop()
@@ -93,7 +95,7 @@ public class Player
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
 		{
-			currentlyPlaying.getAudioFile().stop();
+			currentlyPlaying.getAudioSource().stop();
 			currentlyPlayingProperty.setValue(null);
 		}
 	}
@@ -106,9 +108,9 @@ public class Player
 	{
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
-			currentlyPlaying.getAudioFile().stop();
+			currentlyPlaying.getAudioSource().stop();
 		currentlyPlayingProperty.setValue(playable);
-		playable.getAudioFile().play();
+		playable.getAudioSource().play();
 	}
 	
 	public static void next()
@@ -116,10 +118,10 @@ public class Player
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
 		{
-			currentlyPlaying.getAudioFile().stop();
+			currentlyPlaying.getAudioSource().stop();
 			currentlyPlayingProperty.setValue(currentlyPlaying = currentlyPlaying.getNext());
 			if(currentlyPlaying != null)
-				currentlyPlaying.getAudioFile().play();
+				currentlyPlaying.getAudioSource().play();
 			else if(!queue.isEmpty())
 				currentlyPlayingProperty.setValue(queue.getSong(0));
 		}
@@ -130,10 +132,10 @@ public class Player
 		SongHandle currentlyPlaying = currentlyPlayingProperty.getValue();
 		if(currentlyPlaying != null)
 		{
-			currentlyPlaying.getAudioFile().stop();
+			currentlyPlaying.getAudioSource().stop();
 			currentlyPlayingProperty.setValue(currentlyPlaying = currentlyPlaying.getPrev());
 			if(currentlyPlaying != null)
-				currentlyPlaying.getAudioFile().play();
+				currentlyPlaying.getAudioSource().play();
 		}
 	}
 	
@@ -146,11 +148,19 @@ public class Player
 	public static void endOfSongReached()
 	{
 		if(loopMode.get() == LoopMode.SINGLE)
-			currentlyPlayingProperty.get().getAudioFile().seek(0);
+		{
+			AudioSource as = currentlyPlayingProperty.get().getAudioSource();
+			as.seek(0);
+			as.playCountProperty().set(as.playCountProperty().get() + 1);
+		}
 		else if(loopMode.get() == LoopMode.ALL && currentlyPlayingProperty.get().getNext() == null)
+		{
 			play(queue.getSong(0));
+		}
 		else
+		{
 			next();
+		}
 	}
 	
 	public static Status getStatus()
@@ -161,7 +171,7 @@ public class Player
 		}
 		else
 		{
-			return currentlyPlayingProperty.get().getAudioFile().statusProperty().get();
+			return currentlyPlayingProperty.get().getAudioSource().statusProperty().get();
 		}
 	}
 }

@@ -21,7 +21,7 @@ public class SongHandle
 		this(audioSource, prev, null);
 	}
 	
-	public AudioSource getAudioFile()
+	public AudioSource getAudioSource()
 	{
 		return audioSource;
 	}

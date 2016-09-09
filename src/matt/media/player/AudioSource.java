@@ -45,14 +45,14 @@ public class AudioSource implements Observable
 				List<AudioSource> temp = Collections.emptyList();
 				if(selectedTab.equals("Music") && backingLoadedAudio.size() > 20)
 				{
-					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioFile().equals(as))
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioSource().equals(as))
 							.filter(as -> as.media.getStatus() == Status.READY)
 							.filter(as -> !Util.getVisible(Player.controller.musicListTableView).contains(as))
 							.limit(backingLoadedAudio.size() - 20).collect(Collectors.toList());
 				}
 				else if(selectedTab.equals("Albums") && backingLoadedAudio.size() > Util.getVisible(Player.controller.albumListView).size() * 2)
 				{
-					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioFile().equals(as))
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioSource().equals(as))
 							.filter(as -> as.media.getStatus() == Status.READY)
 							.filter(as -> Util.getVisible(Player.controller.albumListView).stream().noneMatch(usc -> usc.getVisibleSongs().contains(as)))
 							.limit(backingLoadedAudio.size() - Util.getVisible(Player.controller.albumListView).size() * 2).collect(Collectors.toList());
@@ -124,7 +124,7 @@ public class AudioSource implements Observable
 					title.set((String) change.getValueAdded());
 				else if(change.getKey().toLowerCase().equals("artist"))
 					artist.set((String) change.getValueAdded());
-				else if(change.getKey().toLowerCase().equals("album"))
+				else if(change.getKey().toLowerCase().equals("album") && !((String) change.getValueAdded()).isEmpty())
 					album.set((String) change.getValueAdded());
 				else if(change.getKey().toLowerCase().equals("genre"))
 					genre.set((String) change.getValueAdded());
@@ -236,6 +236,8 @@ public class AudioSource implements Observable
 	
 	public StringProperty albumArtistProperty()
 	{
+		if(albumArtist.get().isEmpty())
+			albumArtist.set(artist.get());
 		return albumArtist;
 	}
 	
@@ -372,7 +374,7 @@ public class AudioSource implements Observable
 		raf.writeUTF(artist.get());
 		raf.writeUTF(genre.get());
 		raf.writeUTF(albumArtist.get());
-		if(Config.imagesInCache && Config.cacheImageSize > 0)
+		if(Config.imagesInCache && Config.cacheImageSize > 0 && image.get() != Util.getDefaultImage())
 		{
 			byte[] data = Util.toByteArray(Util.prepForCache(SwingFXUtils.fromFXImage(image.get(), null)));
 			raf.writeInt(data.length);
@@ -382,7 +384,6 @@ public class AudioSource implements Observable
 		{
 			raf.writeInt(0);
 		}
-		raf.writeInt(playCount.get());
 		raf.writeInt(rating.get());
 		raf.writeInt(trackCount.get());
 		raf.writeInt(trackNumber.get());
@@ -427,7 +428,6 @@ public class AudioSource implements Observable
 		{
 			as.image.set(Util.getDefaultImage());
 		}
-		as.playCount.set(raf.readInt());
 		as.rating.set(raf.readInt());
 		as.trackCount.set(raf.readInt());
 		as.trackNumber.set(raf.readInt());

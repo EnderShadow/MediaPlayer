@@ -75,7 +75,7 @@ public class Playlist implements Iterable<AudioSource>
 		{
 			songs.add(new SongHandle(playable, null));
 		}
-		else if(songs.stream().map(SongHandle::getAudioFile).noneMatch(song -> song.equals(playable)))
+		else if(songs.stream().map(SongHandle::getAudioSource).noneMatch(song -> song.equals(playable)))
 		{
 			songs.add(new SongHandle(playable, songs.get(songs.size() - 1)));
 		}
@@ -87,7 +87,7 @@ public class Playlist implements Iterable<AudioSource>
 	
 	public void addPlaylist(Playlist playlist)
 	{
-		playlist.songs.stream().map(SongHandle::getAudioFile).forEach(this::addSong);
+		playlist.songs.stream().map(SongHandle::getAudioSource).forEach(this::addSong);
 	}
 	
 	public boolean removeSong(SongHandle song)
@@ -113,7 +113,7 @@ public class Playlist implements Iterable<AudioSource>
 		for(int i = 0; i < songs.size(); i++)
 		{
 			SongHandle sh = songs.get(i);
-			if(sh.getAudioFile().equals(as))
+			if(sh.getAudioSource().equals(as))
 			{
 				if(Player.currentlyPlayingProperty.get().equals(sh))
 					Player.next();
@@ -143,7 +143,7 @@ public class Playlist implements Iterable<AudioSource>
 			saveDir.mkdirs();
 		
 		File file = new File(saveDir, name + EXTENSION);
-		byte[] data = songs.stream().map(SongHandle::getAudioFile).map(AudioSource::toString).collect(Collectors.joining("\n")).getBytes(Charset.forName("UTF-8"));
+		byte[] data = songs.stream().map(SongHandle::getAudioSource).map(AudioSource::toString).collect(Collectors.joining("\n")).getBytes(Charset.forName("UTF-8"));
 		try
 		{
 			Files.write(file.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -184,7 +184,7 @@ public class Playlist implements Iterable<AudioSource>
 		@Override
 		public AudioSource next()
 		{
-			return iterator.next().getAudioFile();
+			return iterator.next().getAudioSource();
 		}
 	}
 }

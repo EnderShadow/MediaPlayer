@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -19,8 +20,15 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
@@ -29,10 +37,11 @@ public class UniqueSongCollection extends VBox
 	private ObservableList<AudioSource> songs;
 	
 	private StringProperty name;
+	private StringProperty secondaryText;
 	private ObjectProperty<DisplayStyle> displayStyle = new SimpleObjectProperty<>(DisplayStyle.SINGLE);
 	
 	@SuppressWarnings("rawtypes")
-	public UniqueSongCollection(String name, ObservableList<AudioSource> songs, Predicate<AudioSource> belongs, Comparator<AudioSource> sorter)
+	public UniqueSongCollection(String name, String secondaryText, ObservableList<AudioSource> songs, Predicate<AudioSource> belongs, Comparator<AudioSource> sorter)
 	{
 		while(songs instanceof SortedList)
 			songs = ((SortedList) songs).getSource();
@@ -41,20 +50,28 @@ public class UniqueSongCollection extends VBox
 		this.songs = songs.filtered(belongs).sorted(sorter);
 		this.songs.addListener((InvalidationListener) obs -> setupDisplay());
 		this.name = new SimpleStringProperty(name);
+		this.secondaryText = new SimpleStringProperty(secondaryText);
 		
 		prefWidthProperty().bind(Player.controller.albumListView.cellWidthProperty());
 		prefHeightProperty().bind(Player.controller.albumListView.cellHeightProperty());
+		setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+		setBorder(new Border(new BorderStroke(Color.GRAY, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT, null)));
 		setupDisplay();
 	}
 	
-	public UniqueSongCollection(String name, ObservableList<AudioSource> songs)
+	public UniqueSongCollection(String name, String secondaryText, ObservableList<AudioSource> songs)
 	{
-		this(name, songs, null, null);
+		this(name, null, songs, null, null);
 	}
 	
 	public StringProperty nameProperty()
 	{
 		return name;
+	}
+	
+	public StringProperty secondaryTextProperty()
+	{
+		return secondaryText;
 	}
 	
 	public ObservableList<AudioSource> getUnmodifiableSongList()
@@ -125,12 +142,18 @@ public class UniqueSongCollection extends VBox
 		image.setPreserveRatio(true);
 		
 		Label name = new Label();
-		name.textProperty().bind(this.name);
+		name.textProperty().bind(Bindings.createStringBinding(() -> this.name.get().trim(), this.name));
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
+		Label secondaryText = new Label();
+		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+		secondaryText.setTextAlignment(TextAlignment.CENTER);
+		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
+		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name);
+		VBox nameVBox = new VBox(name, secondaryText);
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();
@@ -178,12 +201,18 @@ public class UniqueSongCollection extends VBox
 		HBox imageHBox2 = new HBox(image3, image4);
 		
 		Label name = new Label();
-		name.textProperty().bind(this.name);
+		name.textProperty().bind(Bindings.createStringBinding(() -> this.name.get().trim(), this.name));
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
+		Label secondaryText = new Label();
+		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+		secondaryText.setTextAlignment(TextAlignment.CENTER);
+		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
+		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name);
+		VBox nameVBox = new VBox(name, secondaryText);
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();
@@ -229,12 +258,18 @@ public class UniqueSongCollection extends VBox
 		HBox imageHBox2 = new HBox(image3, image4);
 		
 		Label name = new Label();
-		name.textProperty().bind(this.name);
+		name.textProperty().bind(Bindings.createStringBinding(() -> this.name.get().trim(), this.name));
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
+		Label secondaryText = new Label();
+		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+		secondaryText.setTextAlignment(TextAlignment.CENTER);
+		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
+		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name);
+		VBox nameVBox = new VBox(name, secondaryText);
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();
@@ -244,18 +279,11 @@ public class UniqueSongCollection extends VBox
 	
 	private ObjectProperty<Image> getImage(int index)
 	{
-		while(true)
-		{
-			try
-			{
-				if(index < songs.size())
-					return songs.get(index).imageProperty();
-				return new SimpleObjectProperty<Image>(Util.getDefaultImage());
-			}
-			catch(NullPointerException npe)
-			{
-				// NullPointerExceptions sometimes occur and I don't know why
-			}
-		}
+		// if this starts throwing null pointer exceptions again, wrap it in a while(true) try/catch loop
+		return songs.stream().map(AudioSource::imageProperty)
+				.filter(ip -> ip.get() != Util.getDefaultImage())
+				.skip(index)
+				.findFirst()
+				.orElse(new SimpleObjectProperty<Image>(Util.getDefaultImage()));
 	}
 }
