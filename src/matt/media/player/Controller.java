@@ -49,6 +49,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.media.MediaPlayer.Status;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Arc;
@@ -71,14 +72,14 @@ public class Controller
 	private ProgressIndicator busyIndicator;
 	private ObjectProperty<AtomicInteger> busyCount = new SimpleObjectProperty<>(new AtomicInteger());
 	private Runnable updateIndicator;
-	private MethodHandle __DO_NOT_USE__;
+	//private MethodHandle __DO_NOT_USE__;
 	
 	{
 		try
 		{
 			Method m = ObjectPropertyBase.class.getDeclaredMethod("fireValueChangedEvent");
 			m.setAccessible(true);
-			__DO_NOT_USE__ = MethodHandles.lookup().unreflect(m).bindTo(busyCount);
+			MethodHandle __DO_NOT_USE__ = MethodHandles.lookup().unreflect(m).bindTo(busyCount);
 			updateIndicator = () -> {
 				try
 				{
@@ -152,6 +153,8 @@ public class Controller
 	public TableView<AudioSource> musicListTableView;
 	
 	public GridView<UniqueSongCollection> albumListView;
+	
+	public StackPane albumTab;
 	
 	public void initialize()
 	{
@@ -311,7 +314,13 @@ public class Controller
 			cell.setOnMouseClicked(evt -> {
 				if(evt.getButton() == MouseButton.PRIMARY)
 				{
-					// TODO
+					UniqueSongCollectionViewer uscv = new UniqueSongCollectionViewer();
+					uscv.prefWidthProperty().bind(albumTab.widthProperty());
+					uscv.prefHeightProperty().bind(albumTab.heightProperty());
+					uscv.backgroundProperty().bind(splitPane.backgroundProperty());
+					UniqueSongCollection usc = (UniqueSongCollection) cell.getGraphic();
+					usc.setViewer(uscv);
+					albumTab.getChildren().add(uscv);
 				}
 			});
 			return cell;

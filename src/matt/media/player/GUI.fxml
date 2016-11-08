@@ -86,7 +86,7 @@
                       </Tab>
                         <Tab text="Albums">
                            <content>
-                              <StackPane>
+                              <StackPane fx:id="albumTab">
                                  <children>
                                     <GridView fx:id="albumListView" cellHeight="250.0" cellWidth="200.0" horizontalCellSpacing="10.0" verticalCellSpacing="10.0" />
                                  </children>

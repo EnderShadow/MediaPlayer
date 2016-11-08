@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -62,6 +63,19 @@ public class UniqueSongCollection extends VBox
 	public UniqueSongCollection(String name, String secondaryText, ObservableList<AudioSource> songs)
 	{
 		this(name, null, songs, null, null);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public void setViewer(UniqueSongCollectionViewer uscv)
+	{
+		for(int i = 0; i < 4; i++)
+			uscv.getImageView(i).imageProperty().bind(getImage(i));
+		uscv.getTitle().textProperty().bind(name);
+		uscv.getNumSongs().textProperty().bind(Bindings.createStringBinding(() -> songs.size() + " Songs", songs));
+		uscv.getDuration().textProperty().bind(Bindings.createStringBinding(() -> Util.formatDuration(songs.stream().map(as -> as.durationProperty().get()).reduce((d1, d2) -> d1.add(d2)).get()), songs));
+		SortedList<AudioSource> songs = ((SortedList) this.songs).getSource().sorted();
+		songs.comparatorProperty().bind(uscv.getSongListTableView().comparatorProperty());
+		uscv.getSongListTableView().setItems(songs);
 	}
 	
 	public StringProperty nameProperty()
@@ -280,10 +294,10 @@ public class UniqueSongCollection extends VBox
 	private ObjectProperty<Image> getImage(int index)
 	{
 		// if this starts throwing null pointer exceptions again, wrap it in a while(true) try/catch loop
-		return songs.stream().map(AudioSource::imageProperty)
-				.filter(ip -> ip.get() != Util.getDefaultImage())
-				.skip(index)
-				.findFirst()
-				.orElse(new SimpleObjectProperty<Image>(Util.getDefaultImage()));
+		List<ObjectProperty<Image>> images = songs.stream().map(AudioSource::imageProperty)
+				.filter(ip -> ip.get() != Util.getDefaultImage()).collect(Collectors.toList());
+		if(images.size() == 0)
+			return new SimpleObjectProperty<Image>(Util.getDefaultImage());
+		return images.get(index % images.size());
 	}
 }
