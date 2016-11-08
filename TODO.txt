@@ -1,5 +1,4 @@
 TODO:
--Finish Album tab
 -Make Artists tab
 -Make Genres tab
 -Make Playlists tab
