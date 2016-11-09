@@ -126,6 +126,12 @@ public class Util
 		}
 	}
 	
+	public static <A> void reversedForEach(List<A> list, Consumer<A> consumer)
+	{
+		for(int i = list.size() - 1; i >= 0; i--)
+			consumer.accept(list.get(i));
+	}
+	
 	public static BufferedImage squareImage(BufferedImage bi)
 	{
 		if(bi.getHeight() == bi.getWidth() && (Config.maxImageSize <= 0 && Config.maxImageSize >= bi.getWidth()))

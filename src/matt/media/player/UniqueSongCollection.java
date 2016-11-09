@@ -73,8 +73,8 @@ public class UniqueSongCollection extends VBox
 		uscv.getTitle().textProperty().bind(name);
 		uscv.getNumSongs().textProperty().bind(Bindings.createStringBinding(() -> songs.size() + " Songs", songs));
 		uscv.getDuration().textProperty().bind(Bindings.createStringBinding(() -> Util.formatDuration(songs.stream().map(as -> as.durationProperty().get()).reduce((d1, d2) -> d1.add(d2)).get()), songs));
-		SortedList<AudioSource> songs = ((SortedList) this.songs).getSource().sorted();
-		songs.comparatorProperty().bind(uscv.getSongListTableView().comparatorProperty());
+		//SortedList<AudioSource> songs = ((SortedList) this.songs).getSource().sorted();
+		//songs.comparatorProperty().bind(uscv.getSongListTableView().comparatorProperty());
 		uscv.getSongListTableView().setItems(songs);
 	}
 	

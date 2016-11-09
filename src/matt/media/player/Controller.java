@@ -72,7 +72,6 @@ public class Controller
 	private ProgressIndicator busyIndicator;
 	private ObjectProperty<AtomicInteger> busyCount = new SimpleObjectProperty<>(new AtomicInteger());
 	private Runnable updateIndicator;
-	//private MethodHandle __DO_NOT_USE__;
 	
 	{
 		try
@@ -153,6 +152,7 @@ public class Controller
 	public TableView<AudioSource> musicListTableView;
 	
 	public GridView<UniqueSongCollection> albumListView;
+	private GridCell<UniqueSongCollection> lastClickedCell;
 	
 	public StackPane albumTab;
 	
@@ -215,7 +215,12 @@ public class Controller
 	{
 		MenuItem add2queue = new MenuItem("Add to queue");
 		add2queue.setOnAction(evt -> {
-			musicListTableView.getSelectionModel().getSelectedItems().forEach(Player::addToQueue);
+			musicListTableView.getSelectionModel().getSelectedItems().forEach(as -> Player.addToQueue(as, false));
+		});
+		
+		MenuItem playNext = new MenuItem("Play next");
+		playNext.setOnAction(evt -> {
+			Util.reversedForEach(musicListTableView.getSelectionModel().getSelectedItems(), as -> Player.addToQueue(as, true));
 		});
 		
 		MenuItem deleteSongs = new MenuItem("Delete");
@@ -228,7 +233,7 @@ public class Controller
 			// TODO
 		});
 		
-		ContextMenu contextMenu = new ContextMenu(add2queue, deleteSongs, add2playlist);
+		ContextMenu contextMenu = new ContextMenu(add2queue, playNext, deleteSongs, add2playlist);
 		
 		musicListTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		for(TableColumn<AudioSource, ?> col : musicListTableView.getColumns())
@@ -243,7 +248,7 @@ public class Controller
 					if(evt.getButton().equals(MouseButton.PRIMARY) && evt.getClickCount() >= 2 && evt.getPickResult().getIntersectedNode() != null)
 					{
 						Player.clearQueue();
-						Player.addToQueue(musicListTableView.getSelectionModel().getSelectedItem());
+						Player.addToQueue(musicListTableView.getSelectionModel().getSelectedItem(), false);
 						Player.play();
 					}
 					else if(evt.getButton().equals(MouseButton.SECONDARY))
@@ -297,6 +302,27 @@ public class Controller
 	
 	public void setupAlbumListView()
 	{
+		MenuItem add2queue = new MenuItem("Add to queue");
+		add2queue.setOnAction(evt -> {
+			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> Player.addToQueue(as, false));
+		});
+		
+		MenuItem playNext = new MenuItem("Play next");
+		playNext.setOnAction(evt -> {
+			Util.reversedForEach(((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList(), as -> Player.addToQueue(as, true));
+		});
+		
+		MenuItem deleteSongs = new MenuItem("Delete");
+		deleteSongs.setOnAction(evt -> {
+			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> MediaLibrary.removeSong(as, false));
+		});
+		
+		MenuItem add2playlist = new MenuItem("Add to playlist");
+		add2playlist.setOnAction(evt -> {
+			// TODO
+		});
+		
+		ContextMenu contextMenu = new ContextMenu(add2queue, playNext, deleteSongs, add2playlist);
 		albumListView.cellWidthProperty().bind(albumListView.widthProperty().subtract(140).divide(6));
 		albumListView.cellHeightProperty().bind(albumListView.cellWidthProperty().multiply(1.25D));
 		albumListView.setCellFactory(list -> {
@@ -311,7 +337,9 @@ public class Controller
 						setGraphic(item);
 				}
 			};
+			cell.setContextMenu(contextMenu);
 			cell.setOnMouseClicked(evt -> {
+				lastClickedCell = cell;
 				if(evt.getButton() == MouseButton.PRIMARY)
 				{
 					UniqueSongCollectionViewer uscv = new UniqueSongCollectionViewer();
@@ -321,6 +349,10 @@ public class Controller
 					UniqueSongCollection usc = (UniqueSongCollection) cell.getGraphic();
 					usc.setViewer(uscv);
 					albumTab.getChildren().add(uscv);
+				}
+				else if(evt.getButton() == MouseButton.SECONDARY)
+				{
+					cell.getContextMenu().show(window);
 				}
 			});
 			return cell;

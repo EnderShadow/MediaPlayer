@@ -53,14 +53,20 @@ public class Player
 		});
 	}
 	
-	public static void addToQueue(AudioSource song)
+	public static void addToQueue(AudioSource song, boolean playNext)
 	{
-		queue.addSong(song);
+		if(playNext)
+			queue.addSong(queue.indexOf(currentlyPlayingProperty.get()) + 1, song);
+		else
+			queue.addSong(song);
 	}
 	
-	public static void addToQueue(Playlist playlist)
+	public static void addToQueue(Playlist playlist, boolean playNext)
 	{
-		queue.addPlaylist(playlist);
+		if(playNext)
+			queue.addPlaylist(queue.indexOf(currentlyPlayingProperty.get()) + 1, playlist);
+		else
+			queue.addPlaylist(playlist);
 	}
 	
 	public static void play()

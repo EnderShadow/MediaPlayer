@@ -61,6 +61,8 @@ public class Playlist implements Iterable<AudioSource>
 	
 	public SongHandle getSong(int index)
 	{
+		if(index == -1 || index == songs.size())
+			return null;
 		return songs.get(index);
 	}
 	
@@ -69,15 +71,18 @@ public class Playlist implements Iterable<AudioSource>
 	//	songs.stream().map(SongHandle::getAudioFile).map(AudioFile::)
 	//}
 	
-	public void addSong(AudioSource playable)
+	public void addSong(int index, AudioSource playable)
 	{
+		if(index > songs.size())
+			throw new IllegalArgumentException("Cannot add song past end of playlist");
+		
 		if(songs.size() == 0)
 		{
 			songs.add(new SongHandle(playable, null));
 		}
 		else if(songs.stream().map(SongHandle::getAudioSource).noneMatch(song -> song.equals(playable)))
 		{
-			songs.add(new SongHandle(playable, songs.get(songs.size() - 1)));
+			songs.add(index, new SongHandle(playable, getSong(index - 1), getSong(index)));
 		}
 		else if(!name.isEmpty())
 		{
@@ -85,9 +90,20 @@ public class Playlist implements Iterable<AudioSource>
 		}
 	}
 	
+	public void addSong(AudioSource playable)
+	{
+		addSong(songs.size(), playable);
+	}
+	
+	public void addPlaylist(int index, Playlist playlist)
+	{
+		for(AudioSource as : playlist.songs.stream().map(SongHandle::getAudioSource).collect(Collectors.toList()))
+			addSong(index++, as);
+	}
+	
 	public void addPlaylist(Playlist playlist)
 	{
-		playlist.songs.stream().map(SongHandle::getAudioSource).forEach(this::addSong);
+		addPlaylist(songs.size(), playlist);
 	}
 	
 	public boolean removeSong(SongHandle song)
@@ -135,6 +151,19 @@ public class Playlist implements Iterable<AudioSource>
 		
 		// will put the song in slot 0 if the previous song is null or in the correct spot if it isn't null
 		songs.add(songs.indexOf(prev) + 1, song);
+	}
+	
+	public int indexOf(SongHandle sh)
+	{
+		return songs.indexOf(sh);
+	}
+	
+	public int indexOf(AudioSource as)
+	{
+		for(int i = 0; i < songs.size(); i++)
+			if(songs.get(i).getAudioSource().equals(as))
+				return i;
+		return -1;
 	}
 	
 	public void save(File saveDir)

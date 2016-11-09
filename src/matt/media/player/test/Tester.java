@@ -18,7 +18,7 @@ public class Tester extends Application
 	{
 		//AudioSource af = new AudioSource(new File("D:/Users/Matthew/Desktop/Anime Songs to process/(01)SAVIOR OF SONG(feat. MY FIRST STORY).mp3").toURI().toString());
 		AudioSource af = new AudioSource("http://dl.forunesia.com/mp3/07/%5BForunesia%5D%20Paradisus-Paradoxum.mp3");
-		Player.addToQueue(af);
+		Player.addToQueue(af, false);
 		Scanner scanner = new Scanner(System.in);
 		String[] cmd;
 		while(!(cmd = scanner.nextLine().split(" "))[0].equals("end"))
@@ -35,7 +35,7 @@ public class Tester extends Application
 				Player.pause();
 				break;
 			case "addToQueue":
-				Player.addToQueue(new AudioSource(new File(Arrays.stream(Arrays.copyOfRange(cmd, 1, cmd.length)).collect(Collectors.joining(" "))).toURI().toString()));
+				Player.addToQueue(new AudioSource(new File(Arrays.stream(Arrays.copyOfRange(cmd, 1, cmd.length)).collect(Collectors.joining(" "))).toURI().toString()), false);
 				break;
 			case "next":
 				Player.next();

@@ -45,7 +45,12 @@ public class UniqueSongCollectionViewer extends AnchorPane
 		
 		MenuItem add2queue = new MenuItem("Add to queue");
 		add2queue.setOnAction(evt -> {
-			songListTableView.getSelectionModel().getSelectedItems().forEach(Player::addToQueue);
+			songListTableView.getSelectionModel().getSelectedItems().forEach(as -> Player.addToQueue(as, false));
+		});
+		
+		MenuItem playNext = new MenuItem("Play next");
+		playNext.setOnAction(evt -> {
+			Util.reversedForEach(songListTableView.getSelectionModel().getSelectedItems(), as -> Player.addToQueue(as, true));
 		});
 		
 		MenuItem deleteSongs = new MenuItem("Delete");
@@ -58,7 +63,7 @@ public class UniqueSongCollectionViewer extends AnchorPane
 			// TODO
 		});
 		
-		ContextMenu contextMenu = new ContextMenu(add2queue, deleteSongs, add2playlist);
+		ContextMenu contextMenu = new ContextMenu(add2queue, playNext, deleteSongs, add2playlist);
 		
 		songListTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		for(TableColumn<AudioSource, ?> col : songListTableView.getColumns())
@@ -73,7 +78,7 @@ public class UniqueSongCollectionViewer extends AnchorPane
 					if(evt.getButton().equals(MouseButton.PRIMARY) && evt.getClickCount() >= 2 && evt.getPickResult().getIntersectedNode() != null)
 					{
 						Player.clearQueue();
-						Player.addToQueue(songListTableView.getSelectionModel().getSelectedItem());
+						Player.addToQueue(songListTableView.getSelectionModel().getSelectedItem(), false);
 						Player.play();
 					}
 					else if(evt.getButton().equals(MouseButton.SECONDARY))
@@ -93,12 +98,12 @@ public class UniqueSongCollectionViewer extends AnchorPane
 		TableColumn<AudioSource, String> albumColumn = (TableColumn<AudioSource, String>) columns.get(4);
 		TableColumn<AudioSource, Number> playCountColumn = (TableColumn<AudioSource, Number>) columns.get(5);
 		TableColumn<AudioSource, Number> ratingColumn = (TableColumn<AudioSource, Number>) columns.get(6);
-		titleColumn.setSortable(true);
-		durationColumn.setSortable(true);
-		artistColumn.setSortable(true);
-		albumColumn.setSortable(true);
-		playCountColumn.setSortable(true);
-		ratingColumn.setSortable(true);
+		titleColumn.setSortable(false);
+		durationColumn.setSortable(false);
+		artistColumn.setSortable(false);
+		albumColumn.setSortable(false);
+		playCountColumn.setSortable(false);
+		ratingColumn.setSortable(false);
 		
 		imageColumn.setCellValueFactory(as -> {
 			ImageView iv = new ImageView();
