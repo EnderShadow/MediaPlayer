@@ -62,10 +62,10 @@ public class UniqueSongCollection extends VBox
 	
 	public UniqueSongCollection(String name, String secondaryText, ObservableList<AudioSource> songs)
 	{
-		this(name, null, songs, null, null);
+		this(name, secondaryText, songs, null, null);
 	}
 	
-	@SuppressWarnings("rawtypes")
+	//@SuppressWarnings("rawtypes")
 	public void setViewer(UniqueSongCollectionViewer uscv)
 	{
 		for(int i = 0; i < 4; i++)
@@ -160,14 +160,23 @@ public class UniqueSongCollection extends VBox
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
-		Label secondaryText = new Label();
-		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
-		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
-		secondaryText.setTextAlignment(TextAlignment.CENTER);
-		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
-		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name, secondaryText);
+		VBox nameVBox;
+		if(this.secondaryText.get() != null)
+		{
+			Label secondaryText = new Label();
+			secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+			secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+			secondaryText.setTextAlignment(TextAlignment.CENTER);
+			secondaryText.setFont(Font.font(secondaryText.getFont().getFamily(), 14.0D));
+			secondaryText.setWrapText(true);
+			
+			nameVBox = new VBox(name, secondaryText);
+		}
+		else
+		{
+			nameVBox = new VBox(name);
+		}
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();
@@ -219,14 +228,23 @@ public class UniqueSongCollection extends VBox
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
-		Label secondaryText = new Label();
-		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
-		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
-		secondaryText.setTextAlignment(TextAlignment.CENTER);
-		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
-		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name, secondaryText);
+		VBox nameVBox;
+		if(this.secondaryText.get() != null)
+		{
+			Label secondaryText = new Label();
+			secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+			secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+			secondaryText.setTextAlignment(TextAlignment.CENTER);
+			secondaryText.setFont(Font.font(secondaryText.getFont().getFamily(), 14.0D));
+			secondaryText.setWrapText(true);
+			
+			nameVBox = new VBox(name, secondaryText);
+		}
+		else
+		{
+			nameVBox = new VBox(name);
+		}
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();
@@ -276,14 +294,23 @@ public class UniqueSongCollection extends VBox
 		name.setTextAlignment(TextAlignment.CENTER);
 		name.setFont(Font.font(name.getFont().getFamily(), 18.0D));
 		name.setWrapText(true);
-		Label secondaryText = new Label();
-		secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
-		secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
-		secondaryText.setTextAlignment(TextAlignment.CENTER);
-		secondaryText.setFont(Font.font(name.getFont().getFamily(), 14.0D));
-		secondaryText.setWrapText(true);
 		
-		VBox nameVBox = new VBox(name, secondaryText);
+		VBox nameVBox;
+		if(this.secondaryText.get() != null)
+		{
+			Label secondaryText = new Label();
+			secondaryText.textProperty().bind(Bindings.createStringBinding(() -> this.secondaryText.get().trim(), this.secondaryText));
+			secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty());
+			secondaryText.setTextAlignment(TextAlignment.CENTER);
+			secondaryText.setFont(Font.font(secondaryText.getFont().getFamily(), 14.0D));
+			secondaryText.setWrapText(true);
+			
+			nameVBox = new VBox(name, secondaryText);
+		}
+		else
+		{
+			nameVBox = new VBox(name);
+		}
 		nameVBox.setAlignment(Pos.CENTER);
 		
 		getChildren().clear();

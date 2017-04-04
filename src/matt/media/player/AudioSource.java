@@ -45,14 +45,14 @@ public class AudioSource implements Observable
 				List<AudioSource> temp = Collections.emptyList();
 				if(selectedTab.equals("Music") && backingLoadedAudio.size() > 20)
 				{
-					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioSource().equals(as))
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getCurrentAudioSource().equals(as))
 							.filter(as -> as.media.getStatus() == Status.READY)
 							.filter(as -> !Util.getVisible(Player.controller.musicListTableView).contains(as))
 							.limit(backingLoadedAudio.size() - 20).collect(Collectors.toList());
 				}
 				else if(selectedTab.equals("Albums") && backingLoadedAudio.size() > Util.getVisible(Player.controller.albumListView).size() * 2)
 				{
-					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getAudioSource().equals(as))
+					temp = backingLoadedAudio.stream().filter(as -> !Player.playing.get() || !Player.currentlyPlayingProperty.get().getCurrentAudioSource().equals(as))
 							.filter(as -> as.media.getStatus() == Status.READY)
 							.filter(as -> Util.getVisible(Player.controller.albumListView).stream().noneMatch(usc -> usc.getVisibleSongs().contains(as)))
 							.limit(backingLoadedAudio.size() - Util.getVisible(Player.controller.albumListView).size() * 2).collect(Collectors.toList());
@@ -71,6 +71,7 @@ public class AudioSource implements Observable
 	
 	private boolean serialized = false;
 	private boolean metadataLoaded = false;
+	private boolean registered = false;
 	
 	private InvalidationListener timeChangeListener = obs -> {
 		if(!Player.controller.playbackLocationSlider.isValueChanging())
@@ -296,7 +297,11 @@ public class AudioSource implements Observable
 	{
 		if(mediaSource == null)
 			init(true);
-		media.currentTimeProperty().addListener(timeChangeListener);
+		if(!registered)
+		{
+			media.currentTimeProperty().addListener(timeChangeListener);
+			registered = true;
+		}
 		Player.playing.set(true);
 		media.play();
 		Util.concurrentForEach(listeners, listener -> listener.invalidated(this));
@@ -315,7 +320,11 @@ public class AudioSource implements Observable
 	{
 		if(mediaSource == null)
 			init(true);
-		media.currentTimeProperty().removeListener(timeChangeListener);
+		if(registered)
+		{
+			media.currentTimeProperty().removeListener(timeChangeListener);
+			registered = false;
+		}
 		Player.playing.set(false);
 		seek(0);
 		media.stop();

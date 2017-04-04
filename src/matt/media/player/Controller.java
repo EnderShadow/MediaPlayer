@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -152,9 +153,14 @@ public class Controller
 	public TableView<AudioSource> musicListTableView;
 	
 	public GridView<UniqueSongCollection> albumListView;
+	public GridView<UniqueSongCollection> artistListView;
+	public GridView<UniqueSongCollection> genreListView;
+	
 	private GridCell<UniqueSongCollection> lastClickedCell;
 	
 	public StackPane albumTab;
+	public StackPane artistTab;
+	public StackPane genreTab;
 	
 	public void initialize()
 	{
@@ -167,7 +173,7 @@ public class Controller
 		
 		playButtonIcon.visibleProperty().bind(Player.playing.not());
 		pauseButtonIcon.visibleProperty().bind(Player.playing);
-		playButton.disableProperty().bind(Bindings.createBooleanBinding(() -> Player.queueProperty.get().songs.isEmpty(), Player.queueProperty.get().songs));
+		playButton.disableProperty().bind(Bindings.createBooleanBinding(() -> Player.queueProperty.get().media.isEmpty(), Player.queueProperty.get().media));
 		fileChooser = new FileChooser();
 		directoryChooser = new DirectoryChooser();
 		
@@ -176,14 +182,14 @@ public class Controller
 			Player.pause();
 		});
 		playbackLocationSlider.setOnMouseReleased(evt -> {
-			Player.currentlyPlayingProperty.get().getAudioSource().seek((long) Player.currentlyPlayingProperty.get().getAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
+			Player.currentlyPlayingProperty.get().getCurrentAudioSource().seek((long) Player.currentlyPlayingProperty.get().getCurrentAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
 			Player.play();
 		});
 		playbackLocationSlider.valueChangingProperty().addListener((InvalidationListener) obs -> {
 			if(!playbackLocationSlider.isValueChanging())
 			{
 				Player.pause();
-				Player.currentlyPlayingProperty.get().getAudioSource().seek((long) Player.currentlyPlayingProperty.get().getAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
+				Player.currentlyPlayingProperty.get().getCurrentAudioSource().seek((long) Player.currentlyPlayingProperty.get().getCurrentAudioSource().durationProperty().get().multiply(playbackLocationSlider.getValue()).toMillis());
 				Player.play();
 			}
 		});
@@ -209,6 +215,8 @@ public class Controller
 		
 		setupMusicListTableView();
 		setupAlbumListView();
+		setupArtistListView();
+		setupGenreListView();
 	}
 	
 	public void setupMusicListTableView()
@@ -302,6 +310,13 @@ public class Controller
 	
 	public void setupAlbumListView()
 	{
+		MenuItem play = new MenuItem("Play");
+		play.setOnAction(evt -> {
+			Player.clearQueue();
+			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> Player.addToQueue(as, false));
+			Player.play();
+		});
+		
 		MenuItem add2queue = new MenuItem("Add to queue");
 		add2queue.setOnAction(evt -> {
 			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> Player.addToQueue(as, false));
@@ -322,7 +337,7 @@ public class Controller
 			// TODO
 		});
 		
-		ContextMenu contextMenu = new ContextMenu(add2queue, playNext, deleteSongs, add2playlist);
+		ContextMenu contextMenu = new ContextMenu(play, add2queue, playNext, deleteSongs, add2playlist);
 		albumListView.cellWidthProperty().bind(albumListView.widthProperty().subtract(140).divide(6));
 		albumListView.cellHeightProperty().bind(albumListView.cellWidthProperty().multiply(1.25D));
 		albumListView.setCellFactory(list -> {
@@ -367,6 +382,128 @@ public class Controller
 		});
 	}
 	
+	public void setupArtistListView()
+	{
+		MenuItem shuffle = new MenuItem("Shuffle Artist");
+		shuffle.setOnAction(evt -> {
+			List<AudioSource> songs = ((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList();
+			songs = new ArrayList<>(songs);
+			Collections.shuffle(songs);
+			Player.clearQueue();
+			songs.forEach(as -> Player.addToQueue(as, false));
+			Player.play();
+		});
+		ContextMenu contextMenu = new ContextMenu(shuffle);
+		artistListView.cellWidthProperty().bind(artistListView.widthProperty().subtract(140).divide(6));
+		artistListView.cellHeightProperty().bind(artistListView.cellWidthProperty().multiply(1.40D));
+		artistListView.setCellFactory(list -> {
+			GridCell<UniqueSongCollection> cell = new GridCell<UniqueSongCollection>(){
+				@Override
+				public void updateItem(UniqueSongCollection item, boolean empty)
+				{
+					super.updateItem(item, empty);
+					if(item == null || empty)
+						setGraphic(null);
+					else
+						setGraphic(item);
+				}
+			};
+			cell.setContextMenu(contextMenu);
+			cell.setOnMouseClicked(evt -> {
+				lastClickedCell = cell;
+				if(evt.getButton() == MouseButton.PRIMARY)
+				{
+					// TODO display albums by artist + album with all songs by artist
+					UniqueSongCollectionViewer uscv = new UniqueSongCollectionViewer();
+					uscv.prefWidthProperty().bind(artistTab.widthProperty());
+					uscv.prefHeightProperty().bind(artistTab.heightProperty());
+					uscv.backgroundProperty().bind(splitPane.backgroundProperty());
+					UniqueSongCollection usc = (UniqueSongCollection) cell.getGraphic();
+					usc.setViewer(uscv);
+					artistTab.getChildren().add(uscv);
+				}
+				else if(evt.getButton() == MouseButton.SECONDARY)
+				{
+					cell.getContextMenu().show(window);
+				}
+			});
+			return cell;
+		});
+		FilteredList<UniqueSongCollection> fl = MediaLibrary.artists.filtered(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
+		filterField.textProperty().addListener(obs -> fl.setPredicate(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty()))));
+		SortedList<UniqueSongCollection> sl = fl.sorted();
+		sl.setComparator((usc1, usc2) -> usc1.nameProperty().get().compareToIgnoreCase(usc2.nameProperty().get()));
+		artistListView.setItems(sl);
+		artistListView.addEventHandler(EventType.ROOT, evt -> {
+			Util.getVisible(artistListView).forEach(usc -> usc.getVisibleSongs().forEach(AudioSource::init));
+		});
+	}
+	
+	public void setupGenreListView()
+	{
+		MenuItem play = new MenuItem("Play");
+		play.setOnAction(evt -> {
+			Player.clearQueue();
+			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> Player.addToQueue(as, false));
+			Player.play();
+		});
+		
+		MenuItem add2queue = new MenuItem("Add to queue");
+		add2queue.setOnAction(evt -> {
+			((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList().forEach(as -> Player.addToQueue(as, false));
+		});
+		
+		MenuItem playNext = new MenuItem("Play next");
+		playNext.setOnAction(evt -> {
+			Util.reversedForEach(((UniqueSongCollection) lastClickedCell.getGraphic()).getUnmodifiableSongList(), as -> Player.addToQueue(as, true));
+		});
+		
+		ContextMenu contextMenu = new ContextMenu(play, add2queue, playNext);
+		genreListView.cellWidthProperty().bind(genreListView.widthProperty().subtract(140).divide(6));
+		genreListView.cellHeightProperty().bind(genreListView.cellWidthProperty().multiply(1.25D));
+		genreListView.setCellFactory(list -> {
+			GridCell<UniqueSongCollection> cell = new GridCell<UniqueSongCollection>(){
+				@Override
+				public void updateItem(UniqueSongCollection item, boolean empty)
+				{
+					super.updateItem(item, empty);
+					if(item == null || empty)
+						setGraphic(null);
+					else
+						setGraphic(item);
+				}
+			};
+			cell.setContextMenu(contextMenu);
+			cell.setOnMouseClicked(evt -> {
+				lastClickedCell = cell;
+				if(evt.getButton() == MouseButton.PRIMARY)
+				{
+					// TODO display albums of genre + album with all songs of genre
+					UniqueSongCollectionViewer uscv = new UniqueSongCollectionViewer();
+					uscv.prefWidthProperty().bind(genreTab.widthProperty());
+					uscv.prefHeightProperty().bind(genreTab.heightProperty());
+					uscv.backgroundProperty().bind(splitPane.backgroundProperty());
+					UniqueSongCollection usc = (UniqueSongCollection) cell.getGraphic();
+					usc.setViewer(uscv);
+					genreTab.getChildren().add(uscv);
+				}
+				else if(evt.getButton() == MouseButton.SECONDARY)
+				{
+					cell.getContextMenu().show(window);
+				}
+			});
+			return cell;
+		});
+		FilteredList<UniqueSongCollection> fl = MediaLibrary.genres.filtered(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty())));
+		filterField.textProperty().addListener(obs -> fl.setPredicate(usc -> usc.getUnmodifiableSongList().stream().anyMatch(as -> Util.doesAudioSourceMatch(as, filterField.textProperty()))));
+		SortedList<UniqueSongCollection> sl = fl.sorted();
+		sl.setComparator((usc1, usc2) -> usc1.nameProperty().get().compareToIgnoreCase(usc2.nameProperty().get()));
+		genreListView.setItems(sl);
+		genreListView.addEventHandler(EventType.ROOT, evt -> {
+			Util.getVisible(genreListView).forEach(usc -> usc.getVisibleSongs().forEach(AudioSource::init));
+		});
+	}
+	
 	public void postInit()
 	{
 		
@@ -398,8 +535,8 @@ public class Controller
 	
 	public void prevSong()
 	{
-		if(Player.playing.get() && Player.currentlyPlayingProperty.get().getAudioSource().getMediaPlayer().getCurrentTime().toSeconds() > 3.0D)
-			Player.currentlyPlayingProperty.get().getAudioSource().seek(0);
+		if((Player.playing.get() && Player.currentlyPlayingProperty.get().getCurrentAudioSource().getMediaPlayer().getCurrentTime().toSeconds() > 3.0D) || Player.currentlyPlayingProperty.get().equals(Player.queueProperty.get().getSong(0)))
+			Player.currentlyPlayingProperty.get().getCurrentAudioSource().seek(0);
 		else
 			Player.previous();
 	}
@@ -635,6 +772,9 @@ public class Controller
 					MediaLibrary.cacheAll();
 				}
 				
+				// load playlists
+				MediaLibrary.loadPlaylists();
+				
 				return null;
 			}
 		};
@@ -649,5 +789,11 @@ public class Controller
 	{
 		Player.stop();
 		window.hide();
+		
+		// cleanup code
+		File playlistDir = new File(Config.mediaDirectory, "Playlists");
+		for(Playlist p : MediaLibrary.playlists)
+			if(p.isDirty())
+				p.save(playlistDir);
 	}
 }
