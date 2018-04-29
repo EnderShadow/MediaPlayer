@@ -50,7 +50,7 @@ object Player
                     while(currentlyPlaying == null)
                     {
                         currentlyPlaying = playlistStack.peek().getMedia(mediaIndexStack.peek())
-                        if(currentlyPlaying is PlaylistHandle && currentlyPlaying!!.getPlaylist().isEmpty())
+                        if(currentlyPlaying is PlaylistHandle && currentlyPlaying!!.getPlaylist().isRecursivelyEmpty())
                         {
                             currentlyPlaying = null
                             next()
@@ -118,28 +118,29 @@ object Player
     fun next()
     {
         // While we're at the end of the current playlist and we're not at the root playlist, pop the current playlist off of the stack
-        while(playlistStack.size > 1 && mediaIndexStack.peek() + 1 == playlistStack.peek().size())
+        while(playlistStack.size > 1 && mediaIndexStack.peek() + 1 == playlistStack.peek().numMediaHandles())
         {
             playlistStack.pop()
             mediaIndexStack.pop()
         }
         
         // If we're still at the end of the playlist then we must be at the root playlist so we should stop playing music
-        if(mediaIndexStack.peek() + 1 == playlistStack.peek().size())
+        if(mediaIndexStack.peek() + 1 == playlistStack.peek().numMediaHandles())
         {
             stop()
             return
         }
-        
+    
+        mediaIndexStack.push(mediaIndexStack.pop() + 1)
         // If a song is currently playing, stop it without resetting the queue position and play the next song
         currentlyPlaying?.getCurrentAudioSource()?.mediaPlayer?.let {
             stop(false)
-            mediaIndexStack.push(mediaIndexStack.peek() + 1)
             play()
         }
     }
     
-    fun previous()
+    private var _previousShouldPlay = false
+    tailrec fun previous()
     {
         currentlyPlaying?.getCurrentAudioSource()?.mediaPlayer?.let {
             // If more than 3 seconds have elapsed from the start of the song or we're at the first song in the queue, restart the song
@@ -162,9 +163,39 @@ object Player
                 // If we're not at the beginning of the root playlist then go to the previous song
                 if(mediaIndexStack.peek() > 0)
                 {
-                    mediaIndexStack.push(mediaIndexStack.peek() - 1)
+                    mediaIndexStack.push(mediaIndexStack.pop() - 1)
+                    
+                    val mediaHandle = playlistStack.peek().getMedia(mediaIndexStack.peek())
+                    if(mediaHandle is PlaylistHandle && mediaHandle.getPlaylist().isRecursivelyEmpty())
+                    {
+                        _previousShouldPlay = true
+                        
+                        return previous()
+                    }
                 }
                 play()
+            }
+        } ?: let {
+            while(playlistStack.size > 1 && mediaIndexStack.peek() == 0)
+            {
+                playlistStack.pop()
+                mediaIndexStack.pop()
+            }
+    
+            // If we're not at the beginning of the root playlist then go to the previous song
+            if(mediaIndexStack.peek() > 0)
+            {
+                mediaIndexStack.push(mediaIndexStack.pop() - 1)
+        
+                val mediaHandle = playlistStack.peek().getMedia(mediaIndexStack.peek())
+                if(mediaHandle is PlaylistHandle && mediaHandle.getPlaylist().isRecursivelyEmpty())
+                    return previous()
+            }
+            
+            if(_previousShouldPlay)
+            {
+                play()
+                _previousShouldPlay = false
             }
         }
     }

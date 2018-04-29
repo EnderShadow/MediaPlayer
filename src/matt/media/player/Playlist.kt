@@ -35,6 +35,8 @@ class Playlist(val name: String)
     fun numMediaHandles() = contents.size
     fun isEmpty() = contents.isEmpty()
     
+    fun isRecursivelyEmpty(): Boolean = contents.all {it is PlaylistHandle && it.getPlaylist().isRecursivelyEmpty()}
+    
     fun getSong(index: Int): SongHandle
     {
         if(index < 0 || index >= size())
