@@ -34,31 +34,20 @@ object Player
     }
     
     /**
-     * If a song is paused it will continue playing that song. Otherwise it will play the current song in the queue
-     * as marked by the top of playlistStack and mediaIndexStack
+     * If a song is paused it will continue playing that song. Otherwise it will play the first song it finds in the queue starting from the current
+     * playlist and media index as marked by the top of playlistStack and mediaIndexStack (looping back to the beginning of the queue if necessary)
      */
-    tailrec fun play()
+    fun play()
     {
         if(status != Status.PLAYING)
         {
             // If we're paused continue playing, otherwise find the next song to play
             currentlyPlaying?.getCurrentAudioSource()?.mediaPlayer?.play() ?: let {
-                // If the playlist at the top of the stack is not empty
-                if(!playlistStack.peek().isEmpty())
+                // If the queue is not recusively empty
+                if(!playlistStack[0].isRecursivelyEmpty())
                 {
-                    // while we haven't found a song to play or a non-empty playlist, check the next song/playlist
-                    while(currentlyPlaying == null)
-                    {
-                        currentlyPlaying = playlistStack.peek().getMedia(mediaIndexStack.peek())
-                        if(currentlyPlaying is PlaylistHandle && currentlyPlaying!!.getPlaylist().isRecursivelyEmpty())
-                        {
-                            currentlyPlaying = null
-                            next()
-                            if(playlistStack.size == 1 && mediaIndexStack.peek() == 0)
-                                return
-                        }
-                    }
-                    // If we found a song, play it
+                    currentlyPlaying = playlistStack.peek().getMedia(mediaIndexStack.peek())
+                    // We're already at a song
                     if(currentlyPlaying is SongHandle)
                     {
                         val player = currentlyPlaying!!.getCurrentAudioSource().mediaPlayer
@@ -66,12 +55,12 @@ object Player
                         player.volume = volume
                         player.play()
                     }
-                    else // Since it's a playlist, push it to the top of the stack and tail-recursively call play() again
+                    // We're not at a song
+                    else
                     {
-                        playlistStack.push(currentlyPlaying!!.getPlaylist())
-                        mediaIndexStack.push(0)
-                        currentlyPlaying = null // A playlist cannot be directly played so we need to mark this as null
-                        return play() // return is used to make the function tail recursive
+                        currentlyPlaying = null
+                        next()
+                        play()
                     }
                 }
             }
@@ -115,88 +104,117 @@ object Player
         playlistStack.peek().clearPlaylist()
     }
     
+    // This function will always cause playlistStack.peek() and mediaIndexStack.peek() to point to a song unless the queue is recursively empty
+    // in which case it will point to the beginning of the queue
     fun next()
     {
+        // This code deals with the situation where we're at the beginning of the queue but the first MediaHandle is for a playlist and not a song
+        playlistStack.peek().getMedia(mediaIndexStack.peek()).takeIf {it is PlaylistHandle && !it.getPlaylist().isRecursivelyEmpty()}?.let {
+            mediaIndexStack.push(mediaIndexStack.pop() - 1)
+        }
+        
         // While we're at the end of the current playlist and we're not at the root playlist, pop the current playlist off of the stack
-        while(playlistStack.size > 1 && mediaIndexStack.peek() + 1 == playlistStack.peek().numMediaHandles())
+        while(playlistStack.size > 1 && mediaIndexStack.peek() + 1 >= playlistStack.peek().numMediaHandles())
         {
             playlistStack.pop()
             mediaIndexStack.pop()
         }
         
-        // If we're still at the end of the playlist then we must be at the root playlist so we should stop playing music
-        if(mediaIndexStack.peek() + 1 == playlistStack.peek().numMediaHandles())
+        // while we haven't searched to the end of the queue...
+        while(playlistStack.size > 1 || mediaIndexStack.peek() + 1 < playlistStack.peek().numMediaHandles())
         {
-            stop()
-            return
+            mediaIndexStack.push(mediaIndexStack.pop() + 1)
+            val foundMedia = playlistStack.peek().getMedia(mediaIndexStack.peek())
+            // We found a song
+            if(foundMedia is SongHandle)
+            {
+                if(status == Status.PLAYING)
+                {
+                    stop(false)
+                    play()
+                }
+                return
+            }
+            // We found a playlist that isn't recursively empty
+            else if(!foundMedia.getPlaylist().isRecursivelyEmpty())
+            {
+                playlistStack.push(foundMedia.getPlaylist())
+                mediaIndexStack.push(-1) // the next iteration will set it to 0
+            }
+        
+            // Check if we're at the end of the playlist
+            while(playlistStack.size > 1 && mediaIndexStack.peek() + 1 >= playlistStack.peek().numMediaHandles())
+            {
+                playlistStack.pop()
+                mediaIndexStack.pop()
+            }
         }
-    
-        mediaIndexStack.push(mediaIndexStack.pop() + 1)
-        // If a song is currently playing, stop it without resetting the queue position and play the next song
-        currentlyPlaying?.getCurrentAudioSource()?.mediaPlayer?.let {
-            stop(false)
-            play()
-        }
+        
+        // We've reached the end of the playlist
+        stop()
     }
     
-    private var _previousShouldPlay = false
-    tailrec fun previous()
+    // This function will always cause playlistStack.peek() and mediaIndexStack.peek() to point to a song unless the queue is recursively empty
+    // in which case it will point to the beginning of the queue. If a song is already playing, it will restart it if has played for more than 3 seconds
+    // or it is the first song in the queue
+    fun previous()
     {
         currentlyPlaying?.getCurrentAudioSource()?.mediaPlayer?.let {
-            // If more than 3 seconds have elapsed from the start of the song or we're at the first song in the queue, restart the song
-            if(it.currentTime.toSeconds() > 3.0 || (playlistStack.size == 1 && mediaIndexStack.peek() == 0))
+            // If more than 3 seconds have elapsed from the start of the song restart the song
+            if(it.currentTime.toSeconds() > 3.0)
             {
                 it.seek(Duration.ZERO)
             }
-            else // Less than 3 seconds have elapsed since the start of the song and we're not at the very first song
+            else // Less than 3 seconds have elapsed since the start of the song
             {
                 // Stop the song without resetting the queue position
                 stop(false)
                 
-                // While we're at the beginning of the current playlist and we're not at the root playlist, pop the current playlist off of the stack
-                while(playlistStack.size > 1 && mediaIndexStack.peek() == 0)
-                {
-                    playlistStack.pop()
-                    mediaIndexStack.pop()
-                }
+                // Go to the previous song since there is now no longer a current song to check
+                previous()
                 
-                // If we're not at the beginning of the root playlist then go to the previous song
-                if(mediaIndexStack.peek() > 0)
-                {
-                    mediaIndexStack.push(mediaIndexStack.pop() - 1)
-                    
-                    val mediaHandle = playlistStack.peek().getMedia(mediaIndexStack.peek())
-                    if(mediaHandle is PlaylistHandle && mediaHandle.getPlaylist().isRecursivelyEmpty())
-                    {
-                        _previousShouldPlay = true
-                        
-                        return previous()
-                    }
-                }
+                // We either found a song or are at the beginning of the queue. play() will call next if it is not at a song
                 play()
             }
         } ?: let {
+            // While we're at the beginning of the current playlist and we're not at the root playlist, pop the current playlist off of the stack
             while(playlistStack.size > 1 && mediaIndexStack.peek() == 0)
             {
                 playlistStack.pop()
                 mediaIndexStack.pop()
             }
     
-            // If we're not at the beginning of the root playlist then go to the previous song
-            if(mediaIndexStack.peek() > 0)
+            // If we're not at the beginning of the root playlist then go to the previous song (or the beginning of the queue if there was no previous song)
+            while(playlistStack.size > 1 || mediaIndexStack.peek() != 0)
             {
-                mediaIndexStack.push(mediaIndexStack.pop() - 1)
-        
-                val mediaHandle = playlistStack.peek().getMedia(mediaIndexStack.peek())
-                if(mediaHandle is PlaylistHandle && mediaHandle.getPlaylist().isRecursivelyEmpty())
-                    return previous()
-            }
+                // We're not at the beginning of a playlist
+                if(mediaIndexStack.peek() > 0)
+                {
+                    mediaIndexStack.push(mediaIndexStack.pop() - 1)
             
-            if(_previousShouldPlay)
-            {
-                play()
-                _previousShouldPlay = false
+                    val foundMedia = playlistStack.peek().getMedia(mediaIndexStack.peek())
+                    // If we found a playlist that isn't recursively empty, search it in reverse
+                    if(foundMedia is PlaylistHandle && !foundMedia.getPlaylist().isRecursivelyEmpty())
+                    {
+                        playlistStack.push(foundMedia.getPlaylist())
+                        mediaIndexStack.push(foundMedia.getPlaylist().numMediaHandles())
+                    }
+                    // We found a song
+                    else if(foundMedia is SongHandle)
+                    {
+                        return
+                    }
+                }
+                // We finished searching through a playlist in reverse
+                else
+                {
+                    playlistStack.pop()
+                    mediaIndexStack.pop()
+                }
             }
+    
+            // We are at the beginning of the queue
+            next()
         }
     }
     
