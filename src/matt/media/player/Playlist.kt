@@ -1,9 +1,63 @@
 package matt.media.player
 
+import javafx.beans.InvalidationListener
+import javafx.beans.Observable
 import javafx.util.Duration
+import java.io.File
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 
-class Playlist(val name: String)
+class Playlist(val name: String): Observable, InvalidationListener
 {
+    constructor(file: File): this(file.nameWithoutExtension)
+    {
+        Files.lines(file.toPath()).map {URI(it)}.forEach {
+            if(isFile(it) && File(it).extension.equals(EXTENSION, true))
+            {
+                val playlistFile = File(it)
+                if(!MediaLibrary.isPlaylistLoaded(playlistFile.nameWithoutExtension))
+                {
+                    val temp = Playlist(playlistFile)
+                    MediaLibrary.addPlaylist(temp)
+                    addPlaylist(temp)
+                }
+                else
+                {
+                    addPlaylist(MediaLibrary.getPlaylist(playlistFile.nameWithoutExtension)!!)
+                }
+            }
+            else if(it in MediaLibrary.songURIMap)
+            {
+                addSong(MediaLibrary.songURIMap[it]!!)
+            }
+            else
+            {
+                val song = AudioSource(it)
+                MediaLibrary.addSong(song)
+                addSong(song)
+            }
+        }
+        dirty = false
+    }
+    
+    private val listeners = mutableListOf<InvalidationListener>()
+    
+    override fun addListener(listener: InvalidationListener)
+    {
+        listeners.add(listener)
+    }
+    
+    override fun removeListener(listener: InvalidationListener)
+    {
+        listeners.remove(listener)
+    }
+    
+    override fun invalidated(observable: Observable)
+    {
+        listeners.forEach {it.invalidated(this)}
+    }
+    
     /**
      * These modes are used for adding playlists to this playlist.
      *
@@ -89,6 +143,7 @@ class Playlist(val name: String)
         contents.add(index, SongHandle(audioSource, prev, next))
         numSongs++
         dirty = true
+        invalidated(this)
     }
     
     fun addSong(audioSource: AudioSource) = addSong(contents.size, audioSource)
@@ -108,6 +163,7 @@ class Playlist(val name: String)
                 val next = if(index == contents.size) null else contents[index]
                 contents.add(index, PlaylistHandle(playlist, prev, next))
                 playlists.add(playlist)
+                playlist.addListener(this)
             }
             PlaylistAddMode.CONTENTS -> {
                 for(mediaHandle in playlist.contents.asReversed())
@@ -126,6 +182,7 @@ class Playlist(val name: String)
         }
         
         dirty = true
+        invalidated(this)
     }
     
     fun addPlaylist(playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE) = addPlaylist(contents.size, playlist, addMode)
@@ -144,6 +201,7 @@ class Playlist(val name: String)
         
         contents.remove(mediaHandle)
         dirty = true
+        invalidated(this)
     }
     
     fun removeSong(audioSource: AudioSource)
@@ -157,7 +215,10 @@ class Playlist(val name: String)
     fun removePlaylist(playlist: Playlist)
     {
         val playlistHandle = contents.find {it is PlaylistHandle && it.getPlaylist() == playlist}
-        playlistHandle?.let {removeMedia(it)}
+        playlistHandle?.let {
+            playlist.removeListener(this)
+            removeMedia(it)
+        }
     }
     
     fun indexOf(mediaHandle: MediaHandle): Int = contents.indexOf(mediaHandle)
@@ -173,11 +234,30 @@ class Playlist(val name: String)
         return false
     }
     
+    fun containsPlaylist(playlist: Playlist) = contents.any {it is PlaylistHandle && it.getPlaylist() == playlist}
+    
     fun clearPlaylist()
     {
         contents.clear()
         playlists.clear()
         numSongs = 0
         dirty = true
+        invalidated(this)
+    }
+    
+    fun save(saveDir: File)
+    {
+        if(!saveDir.exists())
+            saveDir.mkdirs()
+        
+        val saveLoc = File(saveDir, "$name.$EXTENSION")
+        val data = contents.map {
+            if(it is SongHandle)
+                it.getCurrentAudioSource().location.path
+            else
+                "${Config.mediaDirectory}${File.separator}Playlists${File.separator}$name.$EXTENSION"
+        }
+        Files.write(saveLoc.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+        dirty = false
     }
 }

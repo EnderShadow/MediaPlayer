@@ -27,21 +27,21 @@ object Config
         {
             try
             {
-                val configData = Files.readAllLines(configFile.toPath(), Charset.forName("UTF-8"))
+                val configData = Files.readAllLines(configFile.toPath())
 
-                configData.removeIf {str -> str.trim {it <= ' '}.startsWith("#") || str.trim {it <= ' '}.isEmpty()}
-                val version = configData.removeAt(0).split(":".toRegex()).dropLastWhile {it.isEmpty()}.toTypedArray()[1].trim {it <= ' '}
+                configData.removeIf {str -> str.trim().run {startsWith("#") || isEmpty()}}
+                val version = configData.removeAt(0).split(':')[1].trim()
 
                 // do anything with the version here
 
                 for(str in configData)
                 {
-                    val line = str.split(":".toRegex(), 2).toTypedArray()
-                    when(line[0].trim {it <= ' '})
+                    val line = str.split(':', limit=2)
+                    when(line[0].trim())
                     {
-                        "mediaDirectory" -> mediaDirectory = File(line[1].trim {it <= ' '})
-                        "maxImageSize" -> maxImageSize = Integer.parseInt(line[1].trim {it <= ' '})
-                        "unloadInvisibleSongs" -> unloadInvisibleSongs = java.lang.Boolean.parseBoolean(line[1].trim {it <= ' '})
+                        "mediaDirectory" -> mediaDirectory = File(line[1].trim())
+                        "maxImageSize" -> maxImageSize = line[1].trim().toInt()
+                        "unloadInvisibleSongs" -> unloadInvisibleSongs = line[1].trim().toBoolean()
                         else -> println("Unknown setting in config\t$str")
                     }
                 }
@@ -70,7 +70,7 @@ object Config
         
         try
         {
-            Files.write(configFile.toPath(), configData, Charset.forName("UTF-8"), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+            Files.write(configFile.toPath(), configData, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         }
         catch(ioe: IOException)
         {
