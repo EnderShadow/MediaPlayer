@@ -15,6 +15,7 @@ class Playlist(val name: String): Observable, InvalidationListener
         Files.lines(file.toPath()).map {URI(it)}.forEach {
             if(isFile(it) && File(it).extension.equals(EXTENSION, true))
             {
+                // is a local playlist
                 val playlistFile = File(it)
                 if(!MediaLibrary.isPlaylistLoaded(playlistFile.nameWithoutExtension))
                 {
@@ -29,13 +30,24 @@ class Playlist(val name: String): Observable, InvalidationListener
             }
             else if(it in MediaLibrary.songURIMap)
             {
+                // is an already loaded song
                 addSong(MediaLibrary.songURIMap[it]!!)
             }
             else
             {
-                val song = AudioSource(it)
-                MediaLibrary.addSong(song)
-                addSong(song)
+                try
+                {
+                    // try to load it as a song
+                    val song = AudioSource(it)
+                    MediaLibrary.addSong(song)
+                    addSong(song)
+                }
+                catch(e: Exception)
+                {
+                    // maybe it's a remote playlist?
+                    // TODO try to remotely load playlist
+                    System.err.println("Tried to load a remote playlist, but that isn't supported atm.\nURI: $it")
+                }
             }
         }
         dirty = false
@@ -131,7 +143,7 @@ class Playlist(val name: String): Observable, InvalidationListener
             it.getCurrentAudioSource().mediaSource.duration
         else // If it's not a SongHandle it's a PlaylistHandle
             it.getPlaylist().getDuration()
-    }.fold(Duration.ZERO) {acc, duration ->  acc.add(duration)}
+    }.fold(Duration.ZERO, Duration::add)
     
     fun addSong(index: Int, audioSource: AudioSource)
     {
@@ -148,9 +160,6 @@ class Playlist(val name: String): Observable, InvalidationListener
     
     fun addSong(audioSource: AudioSource) = addSong(contents.size, audioSource)
     
-    /**
-     * @byReference if this is true then a reference to the playlist will
-     */
     fun addPlaylist(index: Int, playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE)
     {
         if(index < 0 || index > contents.size)
@@ -159,6 +168,10 @@ class Playlist(val name: String): Observable, InvalidationListener
         when(addMode)
         {
             PlaylistAddMode.REFERENCE -> {
+                // check for recursive playlist
+                if(this == playlist || playlist.containsPlaylistRecursive(this))
+                    throw IllegalArgumentException("Cannot add a playlist to another playlist such that it loops forever")
+                
                 val prev = if(index == 0) null else contents[index - 1]
                 val next = if(index == contents.size) null else contents[index]
                 contents.add(index, PlaylistHandle(playlist, prev, next))
@@ -166,14 +179,14 @@ class Playlist(val name: String): Observable, InvalidationListener
                 playlist.addListener(this)
             }
             PlaylistAddMode.CONTENTS -> {
-                for(mediaHandle in playlist.contents.asReversed())
+                for(mediaHandle in playlist.contents.asReversed().toList())
                     if(mediaHandle is SongHandle)
                         addSong(index, mediaHandle.getCurrentAudioSource())
                     else
                         addPlaylist(index, mediaHandle.getPlaylist())
             }
             PlaylistAddMode.FLATTENED -> {
-                for(mediaHandle in playlist.contents.asReversed())
+                for(mediaHandle in playlist.contents.asReversed().toList())
                     if(mediaHandle is SongHandle)
                         addSong(index, mediaHandle.getCurrentAudioSource())
                     else
@@ -234,7 +247,14 @@ class Playlist(val name: String): Observable, InvalidationListener
         return false
     }
     
-    fun containsPlaylist(playlist: Playlist) = contents.any {it is PlaylistHandle && it.getPlaylist() == playlist}
+    fun containsPlaylist(playlist: Playlist) = playlists.any {it == playlist}
+    
+    fun containsPlaylistRecursive(playlist: Playlist): Boolean
+    {
+        if(containsPlaylist(playlist))
+            return true
+        return playlists.any {it.containsPlaylistRecursive(playlist)}
+    }
     
     fun clearPlaylist()
     {

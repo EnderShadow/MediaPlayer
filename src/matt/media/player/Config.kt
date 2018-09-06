@@ -9,10 +9,10 @@ import java.util.ArrayList
 
 object Config
 {
-    private val configFile = File(System.getProperty("user.home") + File.separator + "MediaPlayer" + File.separator + "config.cfg")
+    private val configFile = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "config.cfg")
     private const val VERSION = "1.0.0"
     
-    var mediaDirectory = File(System.getProperty("user.home") + File.separator + "MediaPlayer" + File.separator + "Media")
+    var mediaDirectory = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "Media")
     var maxImageSize = 300
     var unloadInvisibleSongs = true
 

@@ -28,7 +28,7 @@ class Controller
     @FXML private lateinit var splitPane: SplitPane
     @FXML private lateinit var tabPane: TabPane
     @FXML private lateinit var busyIndicator: ProgressIndicator
-    @FXML private lateinit var filterField: TextField
+    @FXML lateinit var filterField: TextField
     @FXML private lateinit var playbackLocationSlider: Slider
     @FXML private lateinit var mediaControlPane: AnchorPane
     @FXML private lateinit var loopSongButton: Button
@@ -57,6 +57,17 @@ class Controller
         pauseButtonIcon.visibleProperty().bind(Player.playing)
         playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.playlistStack[0].isRecursivelyEmpty()}, Player.playlistStack[0]))
         
+        val timeChangeListener = InvalidationListener {
+            if(!playbackLocationSlider.isValueChanging)
+                playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.let {
+                    it.currentTime.toMillis() / it.totalDuration.toMillis()
+                }
+        }
+        
+        Player.currentlyPlaying.addListener {_, oldValue, newValue ->
+            oldValue?.getCurrentAudioSource()?.mediaPlayer?.currentTimeProperty()?.removeListener(timeChangeListener)
+            newValue?.getCurrentAudioSource()?.mediaPlayer?.currentTimeProperty()?.addListener(timeChangeListener)
+        }
         playbackLocationSlider.disableProperty().bind(Player.currentlyPlaying.isNull)
         playbackLocationSlider.setOnMousePressed {Player.pause()}
         playbackLocationSlider.setOnMouseReleased {
@@ -66,11 +77,15 @@ class Controller
         playbackLocationSlider.valueChangingProperty().addListener(InvalidationListener {
             if(!playbackLocationSlider.isValueChanging)
             {
-                //Player.pause()
+                Player.pause()
                 Player.currentlyPlaying.value!!.getCurrentAudioSource().mediaPlayer.run {seek(totalDuration.multiply(playbackLocationSlider.value))}
-                //Player.play()
+                Player.play()
             }
         })
+        
+        volumeSlider.valueProperty().addListener {_ ->
+            Player.volume(volumeSlider.value)
+        }
     
         var colorBinding = Bindings.`when`(Player.loopMode.isEqualTo(LoopMode.NONE)).then(Color.valueOf("BLACK")).otherwise(Color.valueOf("#FF7300"))
         loopIcon1.strokeProperty().bind(colorBinding)
@@ -90,10 +105,10 @@ class Controller
         shuffleIcon4.fillProperty().bind(colorBinding)
         
         registerTab("music/MusicTab.fxml", "Music")
-        registerTab("music/PlaylistTab.fxml", "Playlists")
-        registerTab("music/AlbumTab.fxml", "Albums")
-        registerTab("music/ArtistTab.fxml", "Artists")
-        registerTab("music/GenreTab.fxml", "Genres")
+        //registerTab("music/PlaylistTab.fxml", "Playlists")
+        //registerTab("music/AlbumTab.fxml", "Albums")
+        //registerTab("music/ArtistTab.fxml", "Artists")
+        //registerTab("music/GenreTab.fxml", "Genres")
     }
     
     private fun registerTab(fxmlPath: String, tabName: String)
@@ -102,6 +117,7 @@ class Controller
         val tabContent = loader.load<Parent>()
         val controller = loader.getController<TabController>()
         controller.rootController = this
+        controller.init()
         val tab = Tab(tabName, tabContent)
         tabPane.tabs.add(tab)
     }

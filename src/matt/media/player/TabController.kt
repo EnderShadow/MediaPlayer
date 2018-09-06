@@ -4,5 +4,5 @@ abstract class TabController
 {
     lateinit var rootController: Controller
     
-    abstract fun initialize()
+    abstract fun init()
 }

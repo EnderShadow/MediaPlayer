@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="428.0" prefWidth="1022.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="matt.media.player.music.MusicTabController">
+   <children>
+      <TableView fx:id="musicListTableView" focusTraversable="false" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <columns>
+          <TableColumn editable="false" prefWidth="98.0" sortable="false" text="Image" />
+          <TableColumn editable="false" prefWidth="485.0" text="Title" />
+            <TableColumn editable="false" prefWidth="79.0" text="Duration" />
+            <TableColumn editable="false" prefWidth="172.0" text="Artist" />
+            <TableColumn editable="false" prefWidth="187.0" text="Album" />
+        </columns>
+      </TableView>
+   </children>
+</AnchorPane>

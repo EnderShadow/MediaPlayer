@@ -25,7 +25,7 @@
 
 <VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="330.0" minWidth="720.0" prefHeight="576.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="matt.media.player.Controller">
    <children>
-      <MenuBar>
+      <MenuBar focusTraversable="false">
         <menus>
           <Menu fx:id="fileMenu" mnemonicParsing="false" text="File">
             <items>
@@ -49,15 +49,15 @@
           </Menu>
         </menus>
       </MenuBar>
-      <SplitPane fx:id="splitPane" dividerPositions="0.85, 0.5" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0" VBox.vgrow="ALWAYS">
+      <SplitPane fx:id="splitPane" dividerPositions="0.85, 0.5" focusTraversable="false" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0" VBox.vgrow="ALWAYS">
         <items>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
                <children>
-                  <TabPane fx:id="tabPane" layoutX="95.0" layoutY="14.0" prefHeight="464.0" prefWidth="1022.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-                  <ProgressIndicator fx:id="busyIndicator" layoutX="720.0" layoutY="-10.0" scaleX="0.4" scaleY="0.4" AnchorPane.rightAnchor="215.0" AnchorPane.topAnchor="-13.0" />
-                  <TextField fx:id="filterField" prefHeight="25.0" prefWidth="221.0" promptText="Filter" AnchorPane.rightAnchor="2.0" />
+                  <TabPane fx:id="tabPane" focusTraversable="false" layoutX="95.0" layoutY="14.0" prefHeight="464.0" prefWidth="1022.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                  <ProgressIndicator fx:id="busyIndicator" focusTraversable="false" layoutX="720.0" layoutY="-10.0" scaleX="0.4" scaleY="0.4" AnchorPane.rightAnchor="215.0" AnchorPane.topAnchor="-13.0" />
+                  <TextField fx:id="filterField" focusTraversable="false" prefHeight="25.0" prefWidth="221.0" promptText="Filter" AnchorPane.rightAnchor="2.0" />
                </children></AnchorPane>
-            <Slider fx:id="playbackLocationSlider" blockIncrement="0.001" max="1.0">
+            <Slider fx:id="playbackLocationSlider" blockIncrement="0.001" focusTraversable="false" max="1.0">
                <padding>
                   <Insets left="5.0" right="5.0" />
                </padding>
@@ -66,7 +66,7 @@
                <children>
                   <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                      <children>
-                        <Button fx:id="loopSongButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#toggleLoopMode" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
+                        <Button fx:id="loopSongButton" contentDisplay="GRAPHIC_ONLY" focusTraversable="false" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#toggleLoopMode" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
                            <graphic>
                               <Pane prefHeight="50.0" prefWidth="50.0">
                                  <children>
@@ -90,7 +90,7 @@
                               </Pane>
                            </graphic>
                         </Button>
-                        <Button fx:id="previousSongButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#previousSong" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
+                        <Button fx:id="previousSongButton" contentDisplay="GRAPHIC_ONLY" focusTraversable="false" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#previousSong" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
                            <graphic>
                               <Pane prefHeight="50.0" prefWidth="50.0">
                                  <children>
@@ -109,7 +109,7 @@
                               </Pane>
                            </graphic>
                         </Button>
-                        <Button fx:id="playButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#playPause" prefHeight="60.0" prefWidth="60.0" style="-fx-background-radius: 3em;">
+                        <Button fx:id="playButton" contentDisplay="GRAPHIC_ONLY" focusTraversable="false" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#playPause" prefHeight="60.0" prefWidth="60.0" style="-fx-background-radius: 3em;">
                            <graphic>
                               <Pane prefHeight="50.0" prefWidth="50.0">
                                  <children>
@@ -133,7 +133,7 @@
                               </Pane>
                            </graphic>
                         </Button>
-                        <Button fx:id="nextSongButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#nextSong" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
+                        <Button fx:id="nextSongButton" contentDisplay="GRAPHIC_ONLY" focusTraversable="false" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#nextSong" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
                            <graphic>
                               <Pane prefHeight="50.0" prefWidth="50.0" rotate="180.0">
                                  <children>
@@ -152,7 +152,7 @@
                               </Pane>
                            </graphic>
                         </Button>
-                        <Button fx:id="shuffleButton" contentDisplay="GRAPHIC_ONLY" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#shuffle" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
+                        <Button fx:id="shuffleButton" contentDisplay="GRAPHIC_ONLY" focusTraversable="false" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#shuffle" prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 3em;">
                            <graphic>
                               <Pane prefHeight="50.0" prefWidth="50.0">
                                  <children>
@@ -188,7 +188,7 @@
                         <Insets right="20.0" />
                      </padding>
                      <children>
-                        <Slider fx:id="volumeSlider" blockIncrement="0.01" max="1.0" prefWidth="200.0" value="1.0" />
+                        <Slider fx:id="volumeSlider" blockIncrement="0.01" focusTraversable="false" max="1.0" prefWidth="200.0" value="1.0" />
                      </children>
                   </HBox>
                </children>

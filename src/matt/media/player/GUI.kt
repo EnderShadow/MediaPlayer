@@ -8,6 +8,12 @@ import javafx.stage.Stage
 
 fun main(args: Array<String>)
 {
+    if(args.isNotEmpty() && args[0] == "-d")
+        DEBUG = true
+    
+    if(DEBUG)
+        println("Debug mode is enabled")
+    
     Application.launch(GUI::class.java, *args)
 }
 
@@ -25,7 +31,8 @@ class GUI: Application()
         val controller: Controller = loader.getController()
         controller.window = primaryStage
         
-        // TODO load music
+        MediaLibrary.loadSongs()
+        MediaLibrary.loadPlaylists()
         
         primaryStage.setOnCloseRequest {
             it.consume()

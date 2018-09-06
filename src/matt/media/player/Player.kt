@@ -1,5 +1,6 @@
 package matt.media.player
 
+import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.util.Duration
@@ -13,16 +14,26 @@ object Player
     val playlistStack = Stack<Playlist>()
     val mediaIndexStack = Stack<Int>()
     
+    // keeps track of the currently playing song if there is one
+    var currentlyPlaying = SimpleObjectProperty<MediaHandle?>(null)
+    val playing = SimpleBooleanProperty(false)
+    
     init
     {
         // initial queue setup
         playlistStack.push(Playlist(""))
         mediaIndexStack.push(0)
+        
+        val statusListener = InvalidationListener {
+            playing.value = currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.status == Status.PLAYING
+        }
+        
+        currentlyPlaying.addListener {_, oldVal, newVal ->
+            oldVal?.getCurrentAudioSource()?.mediaPlayer?.statusProperty()?.removeListener(statusListener)
+            newVal?.getCurrentAudioSource()?.mediaPlayer?.statusProperty()?.addListener(statusListener)
+            statusListener.invalidated(null)
+        }
     }
-    
-    // keeps track of the currently playing song if there is one
-    var currentlyPlaying = SimpleObjectProperty<MediaHandle?>(null)
-    val playing = SimpleBooleanProperty(false)
     
     val status
         get() = currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.status ?: Status.STOPPED
@@ -99,6 +110,8 @@ object Player
         else
             playlistStack[0].addPlaylist(mediaHandle.getPlaylist())
     }
+    
+    fun enqueue(audioSource: AudioSource) = playlistStack[0].addSong(audioSource)
     
     fun clearQueue()
     {
