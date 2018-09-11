@@ -31,8 +31,12 @@ class GUI: Application()
         val controller: Controller = loader.getController()
         controller.window = primaryStage
         
-        MediaLibrary.loadSongs()
-        MediaLibrary.loadPlaylists()
+        val t = Thread {
+            MediaLibrary.loadSongs()
+            MediaLibrary.loadPlaylists()
+        }
+        t.isDaemon = true
+        t.start()
         
         primaryStage.setOnCloseRequest {
             it.consume()

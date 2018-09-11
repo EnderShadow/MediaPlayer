@@ -2,17 +2,24 @@ package matt.media.player
 
 import javafx.application.Platform
 import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
+import javafx.collections.ObservableList
+import javafx.collections.ObservableMap
 import javafx.scene.media.MediaException
+import matt.media.player.music.PlaylistTabController
 import java.io.File
 import java.net.URI
 import java.util.*
 
 object MediaLibrary
 {
-    val songs = FXCollections.observableArrayList<AudioSource>()
-    val songURIMap = FXCollections.observableHashMap<URI, AudioSource>()
+    val songs: ObservableList<AudioSource> = FXCollections.observableArrayList<AudioSource>()
+    val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap<URI, AudioSource>()
     
-    val playlists = FXCollections.observableArrayList<Playlist>()
+    val playlists: ObservableList<Playlist> = FXCollections.observableArrayList<Playlist>()
+    val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList<PlaylistTabController.PlaylistIcon>()
+    
+    fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}
     
     fun loadSongs()
     {
@@ -20,12 +27,15 @@ object MediaLibrary
         while(queue.isNotEmpty())
         {
             val curFile = queue.remove()
+            if(curFile.name == "Playlists")
+                continue
             if(curFile.isDirectory)
                 queue.addAll(curFile.listFiles())
             else
                 try
                 {
-                    addSong(AudioSource(curFile.toURI()))
+                    val song = AudioSource(curFile.toURI())
+                    Platform.runLater {addSong(song)}
                 }
                 catch(me: MediaException)
                 {
@@ -47,8 +57,10 @@ object MediaLibrary
             playlistDir.mkdirs()
         
         for(file in playlistDir.listFiles().filter {it.extension == Playlist.EXTENSION})
-            if(!isPlaylistLoaded(file.nameWithoutExtension))
-                playlists.add(Playlist(file))
+            Platform.runLater {
+                if(!isPlaylistLoaded(file.nameWithoutExtension))
+                    playlists.add(Playlist(file))
+            }
     }
     
     fun addPlaylist(playlist: Playlist)

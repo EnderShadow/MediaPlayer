@@ -1,6 +1,7 @@
 package matt.media.player
 
 import javafx.beans.InvalidationListener
+import javafx.beans.Observable
 import javafx.beans.binding.Bindings
 import javafx.event.EventHandler
 import javafx.fxml.FXML
@@ -58,15 +59,20 @@ class Controller
         playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.playlistStack[0].isRecursivelyEmpty()}, Player.playlistStack[0]))
         
         val timeChangeListener = InvalidationListener {
-            if(!playbackLocationSlider.isValueChanging)
+            if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
                 playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.let {
                     it.currentTime.toMillis() / it.totalDuration.toMillis()
-                }
+                } ?: 0.0
+            else
+                playbackLocationSlider.valueProperty().value = 0.0
         }
         
         Player.currentlyPlaying.addListener {_, oldValue, newValue ->
-            oldValue?.getCurrentAudioSource()?.mediaPlayer?.currentTimeProperty()?.removeListener(timeChangeListener)
-            newValue?.getCurrentAudioSource()?.mediaPlayer?.currentTimeProperty()?.addListener(timeChangeListener)
+            if(oldValue is SongHandle)
+                oldValue.getCurrentAudioSource().mediaPlayer.currentTimeProperty()?.removeListener(timeChangeListener)
+            if(newValue is SongHandle)
+                newValue.getCurrentAudioSource().mediaPlayer.currentTimeProperty()?.addListener(timeChangeListener)
+            timeChangeListener.invalidated(null)
         }
         playbackLocationSlider.disableProperty().bind(Player.currentlyPlaying.isNull)
         playbackLocationSlider.setOnMousePressed {Player.pause()}
@@ -104,8 +110,12 @@ class Controller
         shuffleIcon4.strokeProperty().bind(colorBinding)
         shuffleIcon4.fillProperty().bind(colorBinding)
         
+        tabPane.selectionModel.selectedItemProperty().addListener {_, _, newValue ->
+            (newValue?.content?.userData as TabController?)?.onSelected()
+        }
+        
         registerTab("music/MusicTab.fxml", "Music")
-        //registerTab("music/PlaylistTab.fxml", "Playlists")
+        registerTab("music/PlaylistTab.fxml", "Playlists")
         //registerTab("music/AlbumTab.fxml", "Albums")
         //registerTab("music/ArtistTab.fxml", "Artists")
         //registerTab("music/GenreTab.fxml", "Genres")
@@ -116,6 +126,7 @@ class Controller
         val loader = FXMLLoader(javaClass.getResource(fxmlPath))
         val tabContent = loader.load<Parent>()
         val controller = loader.getController<TabController>()
+        tabContent.userData = controller
         controller.rootController = this
         controller.init()
         val tab = Tab(tabName, tabContent)

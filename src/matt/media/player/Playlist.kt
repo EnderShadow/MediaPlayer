@@ -2,14 +2,22 @@ package matt.media.player
 
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
+import javafx.beans.property.SimpleStringProperty
+import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import javafx.util.Duration
 import java.io.File
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
-class Playlist(val name: String): Observable, InvalidationListener
+class Playlist(name: String): Observable, InvalidationListener
 {
+    val nameProperty = SimpleStringProperty(name)
+    var name
+        get() = nameProperty.value
+        set(value) = nameProperty.set(value)
+    
     constructor(file: File): this(file.nameWithoutExtension)
     {
         Files.lines(file.toPath()).map {URI(it)}.forEach {
@@ -85,11 +93,12 @@ class Playlist(val name: String): Observable, InvalidationListener
     // Playlist extension
     companion object
     {
-        const val EXTENSION = ".m3u8"
+        const val EXTENSION = "m3u8"
     }
     
     // This is used to keep track of the playlists and songs inside this playlist
-    private val contents = mutableListOf<MediaHandle>()
+    private val contents = FXCollections.observableArrayList<MediaHandle>()
+    val media: ObservableList<MediaHandle> = FXCollections.unmodifiableObservableList(contents)
     private var numSongs = 0
     private val playlists = mutableListOf<Playlist>()
     var dirty = false
@@ -131,16 +140,9 @@ class Playlist(val name: String): Observable, InvalidationListener
         throw IllegalStateException("Somehow we failed to find a song that was in the playlist. This should never happen")
     }
     
-    fun getMedia(index: Int): MediaHandle
-    {
-        if(index < 0 || index >= contents.size)
-            throw ArrayIndexOutOfBoundsException("Cannot get MediaHandle with index less than 0 or greater than ${contents.size}")
-        return contents[index]
-    }
-    
     fun getDuration(): Duration = contents.map {
         if(it is SongHandle)
-            it.getCurrentAudioSource().mediaSource.duration
+            it.getCurrentAudioSource().durationProperty.value
         else // If it's not a SongHandle it's a PlaylistHandle
             it.getPlaylist().getDuration()
     }.fold(Duration.ZERO, Duration::add)
@@ -200,7 +202,7 @@ class Playlist(val name: String): Observable, InvalidationListener
     
     fun addPlaylist(playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE) = addPlaylist(contents.size, playlist, addMode)
     
-    private fun removeMedia(mediaHandle: MediaHandle)
+    private fun removeMedia0(mediaHandle: MediaHandle)
     {
         val prev = mediaHandle.getPrev()
         val next = mediaHandle.getNext()
@@ -217,12 +219,28 @@ class Playlist(val name: String): Observable, InvalidationListener
         invalidated(this)
     }
     
+    fun removeMedia(mediaHandle: MediaHandle)
+    {
+        if(mediaHandle in contents)
+        {
+            val playing = Player.currentlyPlaying.value == mediaHandle
+            if(playing)
+                Player.stop(false)
+            removeMedia0(mediaHandle)
+            if(playing)
+                Player.play()
+        }
+    }
+    
     fun removeSong(audioSource: AudioSource)
     {
         val songHandle = contents.find {it is SongHandle && it.getCurrentAudioSource() == audioSource}
-            if(songHandle == Player.currentlyPlaying)
-                Player.next()
-            songHandle?.let {removeMedia(it)}
+        val playing = Player.currentlyPlaying.value == songHandle
+        if(playing)
+            Player.stop(false)
+        songHandle?.let {removeMedia0(it)}
+        if(playing)
+            Player.play()
     }
     
     fun removePlaylist(playlist: Playlist)
@@ -230,7 +248,7 @@ class Playlist(val name: String): Observable, InvalidationListener
         val playlistHandle = contents.find {it is PlaylistHandle && it.getPlaylist() == playlist}
         playlistHandle?.let {
             playlist.removeListener(this)
-            removeMedia(it)
+            removeMedia0(it)
         }
     }
     
@@ -273,7 +291,7 @@ class Playlist(val name: String): Observable, InvalidationListener
         val saveLoc = File(saveDir, "$name.$EXTENSION")
         val data = contents.map {
             if(it is SongHandle)
-                it.getCurrentAudioSource().location.path
+                it.getCurrentAudioSource().location.toString()
             else
                 "${Config.mediaDirectory}${File.separator}Playlists${File.separator}$name.$EXTENSION"
         }

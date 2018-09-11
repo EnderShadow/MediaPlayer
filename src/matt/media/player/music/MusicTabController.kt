@@ -8,6 +8,7 @@ import javafx.fxml.FXML
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.MouseButton
+import javafx.scene.layout.AnchorPane
 import javafx.util.Callback
 import matt.media.player.*
 import java.util.concurrent.Callable
@@ -18,11 +19,11 @@ class MusicTabController: TabController()
     
     override fun init()
     {
-        val addToQueue = MenuItem("Add to Queue")
+        val addToQueue = MenuItem("Add to queue")
         addToQueue.setOnAction {musicListTableView.selectionModel.selectedItems.forEach(Player::enqueue)}
         
         val deleteSongs = MenuItem("Delete")
-        deleteSongs.setOnAction {musicListTableView.selectionModel.selectedItems.forEach(MediaLibrary::removeSong)}
+        deleteSongs.setOnAction {musicListTableView.selectionModel.selectedItems.toList().forEach(MediaLibrary::removeSong)}
         
         val newPlaylist = MenuItem("New playlist...")
         newPlaylist.setOnAction {
@@ -96,8 +97,15 @@ class MusicTabController: TabController()
         val sortedList = filteredList.sorted()
         sortedList.comparatorProperty().bind(musicListTableView.comparatorProperty())
         musicListTableView.items = sortedList
+        
+        var visible = emptyList<AudioSource>()
         musicListTableView.addEventHandler(EventType.ROOT) {
-            getVisible(musicListTableView).forEach(AudioSource::init)
+            val newVisible = getVisible(musicListTableView)
+            for(audioSource in visible)
+                if(audioSource !in newVisible && Player.currentlyPlaying.value?.getAudioSource(0) != audioSource)
+                    audioSource.dispose()
+            visible = newVisible
+            newVisible.forEach(AudioSource::init)
         }
     }
 }
