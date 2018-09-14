@@ -25,10 +25,8 @@ fun isFile(uri: URI) = uri.isAbsolute && uri.scheme.equals("file", true) || uri.
 fun formatDuration(duration: Duration?): String
 {
     @Suppress("NAME_SHADOWING")
-    var duration = duration
-    if(duration == null)
-        duration = Duration.ZERO
-    if(duration!!.greaterThanOrEqualTo(Duration.hours(100.0)))
+    var duration = duration ?: Duration.ZERO
+    if(duration.greaterThanOrEqualTo(Duration.hours(100.0)))
         duration = Duration.seconds((99 * 3600 + 59 * 60 + 59).toDouble())
     val seconds = duration!!.toSeconds().toLong()
     return String.format("%02d:%02d:%02d", seconds / 3600, seconds % 3600 / 60, seconds % 60)
@@ -105,7 +103,7 @@ fun Color.withinThreshold(other: Color, redThreshold: Double, greenThreshold: Do
     return true
 }
 
-private fun squareImage(bi: BufferedImage): BufferedImage
+fun squareImage(bi: BufferedImage): BufferedImage
 {
     if(bi.height == bi.width && (Config.maxImageSize <= 0 || Config.maxImageSize >= bi.width))
         return bi

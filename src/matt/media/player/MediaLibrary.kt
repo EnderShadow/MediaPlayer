@@ -1,6 +1,7 @@
 package matt.media.player
 
 import javafx.application.Platform
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
@@ -13,6 +14,8 @@ import java.util.*
 
 object MediaLibrary
 {
+    val loadingProperty = SimpleBooleanProperty(false)
+    
     val songs: ObservableList<AudioSource> = FXCollections.observableArrayList<AudioSource>()
     val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap<URI, AudioSource>()
     
@@ -95,7 +98,6 @@ object MediaLibrary
         }
         songs.remove(audioSource)
         songURIMap.remove(audioSource.location)
-        audioSource.dispose()
         if(isFile(audioSource.location))
         {
             if(!DEBUG)

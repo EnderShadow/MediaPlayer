@@ -28,5 +28,6 @@
     <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.60" level="project" />
     <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-reflect:1.2.60" level="project" />
     <orderEntry type="library" name="Maven: no.tornado:tornadofx-controlsfx:0.1.1" level="project" />
+    <orderEntry type="library" name="Maven: net.jthink:jaudiotagger:2.2.5" level="project" />
   </component>
 </module>

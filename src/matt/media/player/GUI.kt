@@ -1,6 +1,7 @@
 package matt.media.player
 
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
@@ -32,8 +33,10 @@ class GUI: Application()
         controller.window = primaryStage
         
         val t = Thread {
+            Platform.runLater {MediaLibrary.loadingProperty.value = true}
             MediaLibrary.loadSongs()
             MediaLibrary.loadPlaylists()
+            Platform.runLater {MediaLibrary.loadingProperty.value = false}
         }
         t.isDaemon = true
         t.start()

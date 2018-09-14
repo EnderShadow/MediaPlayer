@@ -87,8 +87,8 @@ class MusicTabController: TabController()
         
         titleColumn.setCellValueFactory {it.value.titleProperty}
         durationColumn.setCellValueFactory {Bindings.createStringBinding(Callable<String> {
-            formatDuration(it.value.mediaSource.durationProperty().get())
-        }, it.value.mediaSource.durationProperty())}
+            formatDuration(it.value.durationProperty.get())
+        }, it.value.durationProperty)}
         artistColumn.setCellValueFactory {it.value.artistProperty}
         albumColumn.setCellValueFactory {it.value.albumProperty}
         
@@ -98,14 +98,6 @@ class MusicTabController: TabController()
         sortedList.comparatorProperty().bind(musicListTableView.comparatorProperty())
         musicListTableView.items = sortedList
         
-        var visible = emptyList<AudioSource>()
-        musicListTableView.addEventHandler(EventType.ROOT) {
-            val newVisible = getVisible(musicListTableView)
-            for(audioSource in visible)
-                if(audioSource !in newVisible && Player.currentlyPlaying.value?.getAudioSource(0) != audioSource)
-                    audioSource.dispose()
-            visible = newVisible
-            newVisible.forEach(AudioSource::init)
-        }
+        musicListTableView.addEventHandler(EventType.ROOT) {getVisible(musicListTableView).forEach {it.loadImage()}}
     }
 }

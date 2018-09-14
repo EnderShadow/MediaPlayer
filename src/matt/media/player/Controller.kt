@@ -52,7 +52,7 @@ class Controller
     {
         SplitPane.setResizableWithParent(mediaControlPane, false)
         
-        // TODO busy indicator bindings here
+        busyIndicator.visibleProperty().bind(MediaLibrary.loadingProperty)
         
         playButtonIcon.visibleProperty().bind(Player.playing.not())
         pauseButtonIcon.visibleProperty().bind(Player.playing)

@@ -357,17 +357,7 @@ class PlaylistTabController: TabController()
                     SimpleStringProperty("")
             }
             
-            var visible = emptyList<MediaHandle>()
-            mediaListTableView.addEventHandler(EventType.ROOT) {
-                val newVisible = getVisible(mediaListTableView)
-                for(mediaHandle in visible)
-                {
-                    if(mediaHandle !in newVisible && Player.currentlyPlaying.value != mediaHandle && mediaHandle is SongHandle)
-                        mediaHandle.getCurrentAudioSource().dispose()
-                }
-                visible = newVisible
-                newVisible.filter {it is SongHandle}.forEach {it.getCurrentAudioSource().init()}
-            }
+            mediaListTableView.addEventHandler(EventType.ROOT) {getVisible(mediaListTableView).forEach {it.getAudioSource(0).loadImage()}}
         }
         
         fun popViewer() = stackPane.children.remove(this)
