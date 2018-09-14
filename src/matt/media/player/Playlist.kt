@@ -152,9 +152,7 @@ class Playlist(name: String): Observable, InvalidationListener
         if(index < 0 || index > contents.size)
             throw ArrayIndexOutOfBoundsException("Cannot put AudioSource at index less than 0 or greater than ${contents.size}")
         
-        val prev = if(index == 0) null else contents[index - 1]
-        val next = if(index == contents.size) null else contents[index]
-        contents.add(index, SongHandle(audioSource, prev, next))
+        contents.add(index, SongHandle(audioSource))
         numSongs++
         dirty = true
         invalidated(this)
@@ -174,9 +172,7 @@ class Playlist(name: String): Observable, InvalidationListener
                 if(this == playlist || playlist.containsPlaylistRecursive(this))
                     throw IllegalArgumentException("Cannot add a playlist to another playlist such that it loops forever")
                 
-                val prev = if(index == 0) null else contents[index - 1]
-                val next = if(index == contents.size) null else contents[index]
-                contents.add(index, PlaylistHandle(playlist, prev, next))
+                contents.add(index, PlaylistHandle(playlist))
                 playlists.add(playlist)
                 playlist.addListener(this)
             }
@@ -202,13 +198,23 @@ class Playlist(name: String): Observable, InvalidationListener
     
     fun addPlaylist(playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE) = addPlaylist(contents.size, playlist, addMode)
     
+    fun moveMedia(index: Int, mediaHandles: List<MediaHandle>)
+    {
+        if(mediaHandles.any {it !in contents})
+            throw IllegalArgumentException("One or more songs is not in the playlist")
+        
+        val numBefore = mediaHandles.filter {contents.indexOf(it) < index}.size
+        contents.removeAll(mediaHandles)
+        contents.addAll(index - numBefore, mediaHandles)
+        if(Player.currentlyPlaying.value in contents)
+        {
+            Player.mediaIndexStack.pop()
+            Player.mediaIndexStack.push(contents.indexOf(Player.currentlyPlaying.value))
+        }
+    }
+    
     private fun removeMedia0(mediaHandle: MediaHandle)
     {
-        val prev = mediaHandle.getPrev()
-        val next = mediaHandle.getNext()
-        prev?.setNext(next)
-        next?.setPrev(prev)
-        
         if(mediaHandle is SongHandle)
             numSongs--
         else

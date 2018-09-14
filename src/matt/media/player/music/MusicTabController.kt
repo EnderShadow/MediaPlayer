@@ -53,10 +53,12 @@ class MusicTabController: TabController()
                         Player.clearQueue()
                         Player.enqueue(musicListTableView.selectionModel.selectedItem)
                         Player.play()
+                        it.consume()
                     }
                     else if(it.button == MouseButton.SECONDARY)
                     {
                         cell.contextMenu.show(rootController.window)
+                        it.consume()
                     }
                 }
                 cell

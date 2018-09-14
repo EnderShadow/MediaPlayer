@@ -75,17 +75,17 @@ class PlaylistTabController: TabController()
         playlistView.contextMenu = ContextMenu(createNewPlaylist)
         
         val contextMenu = ContextMenu(play, addToQueue, delete, addToPlaylist)
-        playlistView.cellWidthProperty().bind(playlistView.widthProperty().subtract(140).divide(6))
+        playlistView.cellWidthProperty().value = Config.maxImageSize / 2.0
         playlistView.cellHeightProperty().bind(playlistView.cellWidthProperty().multiply(1.25))
         playlistView.setCellFactory {
             val cell = object: GridCell<PlaylistIcon>(){
                 override fun updateItem(item: PlaylistIcon?, empty: Boolean)
                 {
                     super.updateItem(item, empty)
-                    if(item == null || empty)
-                        graphic = null
+                    graphic = if(item == null || empty)
+                        null
                     else
-                        graphic = item
+                        item
                 }
             }
             cell.contextMenu = contextMenu
@@ -100,10 +100,12 @@ class PlaylistTabController: TabController()
                     val icon = cell.graphic as PlaylistIcon
                     icon.setViewer(viewer)
                     stackPane.children.add(viewer)
+                    evt.consume()
                 }
                 else if(evt.button == MouseButton.SECONDARY)
                 {
                     cell.contextMenu.show(rootController.window)
+                    evt.consume()
                 }
             }
             cell
@@ -163,6 +165,8 @@ class PlaylistTabController: TabController()
     
         private fun setupDisplay()
         {
+            playlist.media.take(4).forEach {it.getAudioSource(0).loadImage()}
+            
             val image1 = ImageView()
             image1.imageProperty().bind(getImage(0))
             image1.fitWidthProperty().bind(prefWidthProperty().divide(2))
@@ -290,10 +294,12 @@ class PlaylistTabController: TabController()
                             Player.clearQueue()
                             mediaListTableView.selectionModel.selectedItems.forEach(Player::enqueue)
                             Player.play()
+                            it.consume()
                         }
                         else if(it.button == MouseButton.SECONDARY)
                         {
                             cell.contextMenu.show(rootController.window)
+                            it.consume()
                         }
                     }
                     cell
