@@ -86,23 +86,26 @@ class PlaylistTabController: TabController()
         val addToPlaylist = Menu("Add to playlist", null, addToNewPlaylist)
         addToPlaylist.setOnShowing {
             MediaLibrary.playlists.forEach {playlist ->
+                @Suppress("NAME_SHADOWING")
                 val byReference = MenuItem("by reference")
-                byReference.setOnAction {
+                byReference.setOnAction {_ ->
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
                     playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.REFERENCE)
                 }
+                @Suppress("NAME_SHADOWING")
                 val byContents = MenuItem("by contents")
-                byContents.setOnAction {
+                byContents.setOnAction {_ ->
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
                     playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.CONTENTS)
                 }
+                @Suppress("NAME_SHADOWING")
                 val byFlattened = MenuItem("by flattened")
-                byFlattened.setOnAction {
+                byFlattened.setOnAction {_ ->
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
                     playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.FLATTENED)
                 }
                 val playlistMenu = Menu(playlist.name, null, byReference, byContents, byFlattened)
-                playlistMenu.setOnAction {
+                playlistMenu.setOnAction {_ ->
                     if(it.target != playlistMenu)
                         return@setOnAction
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
@@ -309,11 +312,33 @@ class PlaylistTabController: TabController()
         
             val deleteSongs = MenuItem("Delete")
             deleteSongs.setOnAction {mediaListTableView.selectionModel.selectedItems.toList().forEach(playlist::removeMedia)}
-        
-            val addToPlaylist = MenuItem("Add to playlist")
-            addToPlaylist.setOnAction {
-                // TODO bring up menu for adding selected items to other playlist
+    
+            val newPlaylist = MenuItem("New playlist...")
+            newPlaylist.setOnAction {
+                val playlist = rootController.requestCreatePlaylist()
+                if(playlist != null)
+                    mediaListTableView.selectionModel.selectedItems.forEach {mh ->
+                        if(mh is SongHandle)
+                            playlist.addSong(mh.getCurrentAudioSource())
+                        else
+                            playlist.addPlaylist(mh.getPlaylist())
+                    }
             }
+    
+            val addToPlaylist = Menu("Add to playlist", null, newPlaylist)
+            addToPlaylist.setOnShowing {_ ->
+                MediaLibrary.playlists.forEach {playlist ->
+                    val playlistMenu = MenuItem(playlist.name)
+                    playlistMenu.setOnAction {mediaListTableView.selectionModel.selectedItems.forEach {mh ->
+                        if(mh is SongHandle)
+                            playlist.addSong(mh.getCurrentAudioSource())
+                        else
+                            playlist.addPlaylist(mh.getPlaylist())
+                    }}
+                    addToPlaylist.items.add(playlistMenu)
+                }
+            }
+            addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
     
             val selectionModel = mediaListTableView.selectionModel
             val viewPlaylist = MenuItem("View playlist")
