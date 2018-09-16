@@ -15,6 +15,7 @@ object Config
     var mediaDirectory = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "Media")
     var maxImageSize = 300
     var unloadInvisibleSongs = true
+    var defaultPlaylistAddMode = Playlist.PlaylistAddMode.REFERENCE
 
     fun load()
     {
@@ -42,6 +43,7 @@ object Config
                         "mediaDirectory" -> mediaDirectory = File(line[1].trim())
                         "maxImageSize" -> maxImageSize = line[1].trim().toInt()
                         "unloadInvisibleSongs" -> unloadInvisibleSongs = line[1].trim().toBoolean()
+                        "defaultPlaylistAddMode" -> defaultPlaylistAddMode = Playlist.PlaylistAddMode.valueOf(line[1].trim().toUpperCase())
                         else -> println("Unknown setting in config\t$str")
                     }
                 }
@@ -63,6 +65,7 @@ object Config
         configData.add("mediaDirectory: ${mediaDirectory.path}")
         configData.add("maxImageSize: $maxImageSize")
         configData.add("unloadInvisibleSongs: $unloadInvisibleSongs")
+        configData.add("defaultPlaylistAddMode: ${defaultPlaylistAddMode.name}")
         
         println("Config updated")
         configData.forEach {println(it)}

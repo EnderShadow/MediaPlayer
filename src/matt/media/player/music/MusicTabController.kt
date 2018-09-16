@@ -27,7 +27,9 @@ class MusicTabController: TabController()
         
         val newPlaylist = MenuItem("New playlist...")
         newPlaylist.setOnAction {
-            // TODO bring up menu for new playlist and add songs to it
+            val playlist = rootController.requestCreatePlaylist()
+            if(playlist != null)
+                musicListTableView.selectionModel.selectedItems.forEach(playlist::addSong)
         }
         
         val addToPlaylist = Menu("Add to playlist", null, newPlaylist)

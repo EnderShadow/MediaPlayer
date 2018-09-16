@@ -1,6 +1,6 @@
 package matt.media.player
 
-sealed class MediaHandle()
+sealed class MediaHandle
 {
     abstract fun getCurrentAudioSource(): AudioSource
     abstract fun getAudioSource(index: Int): AudioSource

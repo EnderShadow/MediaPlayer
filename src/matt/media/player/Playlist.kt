@@ -299,7 +299,7 @@ class Playlist(name: String): Observable, InvalidationListener
             if(it is SongHandle)
                 it.getCurrentAudioSource().location.toString()
             else
-                "${Config.mediaDirectory}${File.separator}Playlists${File.separator}$name.$EXTENSION"
+                File("${Config.mediaDirectory}${File.separator}Playlists${File.separator}${it.getPlaylist().name}.$EXTENSION").toURI().toString()
         }
         Files.write(saveLoc.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         dirty = false

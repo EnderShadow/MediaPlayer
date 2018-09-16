@@ -7,6 +7,7 @@ import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
+import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.Pane
@@ -16,7 +17,11 @@ import javafx.scene.shape.Arc
 import javafx.scene.shape.Line
 import javafx.scene.shape.Polygon
 import javafx.scene.text.Text
+import javafx.stage.Popup
+import javafx.stage.Stage
 import javafx.stage.Window
+import matt.media.player.music.NewPlaylistController
+import tornadofx.*
 import java.io.File
 import java.util.concurrent.Callable
 
@@ -166,5 +171,22 @@ class Controller
         window.hide()
         val playlistDir = File(Config.mediaDirectory, "Playlists")
         MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(playlistDir)}
+    }
+    
+    fun requestCreatePlaylist(): Playlist?
+    {
+        val stage = Stage()
+        val loader = FXMLLoader(javaClass.getResource("music/NewPlaylist.fxml"))
+        val node: Parent = loader.load()
+        val controller: NewPlaylistController = loader.getController()
+        controller.window = stage
+        stage.initOwner(window)
+        stage.scene = Scene(node)
+        stage.showAndWait()
+        
+        if(controller.createdPlaylist != null)
+            MediaLibrary.addPlaylist(controller.createdPlaylist!!)
+        
+        return controller.createdPlaylist
     }
 }

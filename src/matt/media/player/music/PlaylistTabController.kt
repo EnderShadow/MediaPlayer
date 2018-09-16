@@ -19,6 +19,7 @@ import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.TextAlignment
+import javafx.stage.Screen
 import javafx.util.Callback
 import matt.media.player.*
 import org.controlsfx.control.GridCell
@@ -34,6 +35,7 @@ class PlaylistTabController: TabController()
     
     override fun init()
     {
+        playlistView.visibleProperty().bind(Bindings.createBooleanBinding(Callable {stackPane.children.last() == playlistView}, stackPane.children))
         stackPane.children.addListener(InvalidationListener {MediaLibrary.refreshPlaylistIcons()})
         
         val play = MenuItem("Play")
@@ -48,19 +50,63 @@ class PlaylistTabController: TabController()
         
         val delete = MenuItem("Delete")
         delete.setOnAction {MediaLibrary.removePlaylist((lastClickedCell.graphic as PlaylistIcon).playlist)}
-    
-        val addToNewPlaylist = MenuItem("New playlist...")
+        
+        fun createPlaylistFromSelectedPlaylist(addMode: Playlist.PlaylistAddMode)
+        {
+            val playlist = rootController.requestCreatePlaylist()
+            if(playlist != null)
+            {
+                val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                playlist.addPlaylist(playlistToAdd, addMode)
+            }
+        }
+        
+        val byReference = MenuItem("by reference")
+        byReference.setOnAction {
+            createPlaylistFromSelectedPlaylist(Playlist.PlaylistAddMode.REFERENCE)
+        }
+        
+        val byContents = MenuItem("by contents")
+        byContents.setOnAction {
+            createPlaylistFromSelectedPlaylist(Playlist.PlaylistAddMode.CONTENTS)
+        }
+        
+        val byFlattened = MenuItem("by flattened")
+        byFlattened.setOnAction {
+            createPlaylistFromSelectedPlaylist(Playlist.PlaylistAddMode.FLATTENED)
+        }
+        
+        val addToNewPlaylist = Menu("New playlist...", null, byReference, byContents, byFlattened)
         addToNewPlaylist.setOnAction {
-            // TODO bring up menu for new playlist and add songs to it
+            if(it.target != addToNewPlaylist)
+                return@setOnAction
+            createPlaylistFromSelectedPlaylist(Config.defaultPlaylistAddMode)
         }
         
         val addToPlaylist = Menu("Add to playlist", null, addToNewPlaylist)
         addToPlaylist.setOnShowing {
             MediaLibrary.playlists.forEach {playlist ->
-                val playlistMenu = MenuItem(playlist.name)
-                playlistMenu.setOnAction {
+                val byReference = MenuItem("by reference")
+                byReference.setOnAction {
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
-                    // TODO ask how playlistToAdd should be added to playlist
+                    playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.REFERENCE)
+                }
+                val byContents = MenuItem("by contents")
+                byContents.setOnAction {
+                    val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                    playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.CONTENTS)
+                }
+                val byFlattened = MenuItem("by flattened")
+                byFlattened.setOnAction {
+                    val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                    playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.FLATTENED)
+                }
+                val playlistMenu = Menu(playlist.name, null, byReference, byContents, byFlattened)
+                playlistMenu.setOnAction {
+                    if(it.target != playlistMenu)
+                        return@setOnAction
+                    val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                    playlist.addPlaylist(playlistToAdd, Config.defaultPlaylistAddMode)
                 }
                 addToPlaylist.items.add(playlistMenu)
             }
@@ -69,13 +115,13 @@ class PlaylistTabController: TabController()
         
         val createNewPlaylist = MenuItem("New playlist")
         createNewPlaylist.setOnAction {
-            // TODO create new playlist
+            rootController.requestCreatePlaylist()
         }
         
         playlistView.contextMenu = ContextMenu(createNewPlaylist)
         
         val contextMenu = ContextMenu(play, addToQueue, delete, addToPlaylist)
-        playlistView.cellWidthProperty().value = Config.maxImageSize / 2.0
+        playlistView.cellWidthProperty().value = Screen.getPrimary().visualBounds.width / 13.0
         playlistView.cellHeightProperty().bind(playlistView.cellWidthProperty().multiply(1.25))
         playlistView.setCellFactory {
             val cell = object: GridCell<PlaylistIcon>(){
@@ -100,6 +146,7 @@ class PlaylistTabController: TabController()
                     val icon = cell.graphic as PlaylistIcon
                     icon.setViewer(viewer)
                     stackPane.children.add(viewer)
+                    viewer.visibleProperty().bind(Bindings.createBooleanBinding(Callable {stackPane.children.last() == viewer}, stackPane.children))
                     evt.consume()
                 }
                 else if(evt.button == MouseButton.SECONDARY)
@@ -265,7 +312,7 @@ class PlaylistTabController: TabController()
         
             val addToPlaylist = MenuItem("Add to playlist")
             addToPlaylist.setOnAction {
-                TODO()
+                // TODO bring up menu for adding selected items to other playlist
             }
     
             val selectionModel = mediaListTableView.selectionModel
@@ -278,6 +325,8 @@ class PlaylistTabController: TabController()
                 val icon = MediaLibrary.playlistIcons.first {it.playlist == selectionModel.selectedItem.getPlaylist()}
                 icon.setViewer(viewer)
                 stackPane.children.add(viewer)
+                viewer.visibleProperty().bind(Bindings.createBooleanBinding(Callable {stackPane.children.last() == viewer}, stackPane.children))
+                it.consume()
             }
             viewPlaylist.visibleProperty().bind(Bindings.createBooleanBinding(Callable {selectionModel.selectedItems.size == 1 && selectionModel.selectedItem is PlaylistHandle}, selectionModel.selectedItems))
         

@@ -2,11 +2,13 @@ package matt.media.player
 
 import javafx.beans.property.StringProperty
 import javafx.embed.swing.SwingFXUtils
+import javafx.fxml.FXMLLoader
 import javafx.scene.control.TableView
 import javafx.scene.control.skin.TableViewSkin
 import javafx.scene.control.skin.VirtualFlow
 import javafx.scene.image.Image
 import javafx.scene.paint.Color
+import javafx.stage.Popup
 import javafx.util.Duration
 import java.awt.image.BufferedImage
 import java.lang.invoke.MethodHandles
