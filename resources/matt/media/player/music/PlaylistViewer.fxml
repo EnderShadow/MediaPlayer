@@ -36,7 +36,7 @@
       <Label fx:id="duration" layoutX="210.0" layoutY="52.0" prefHeight="20.0" prefWidth="100.0" text="00:00:00" AnchorPane.leftAnchor="410.0" AnchorPane.topAnchor="60.0" />
       <TableView fx:id="mediaListTableView" editable="true" layoutY="200.0" prefHeight="318.0" prefWidth="1022.0" tableMenuButtonVisible="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="100.0">
          <columns>
-            <TableColumn editable="false" prefWidth="100.0" sortable="false" text="Image" />
+            <TableColumn editable="false" prefWidth="75.0" sortable="false" text="Image" />
             <TableColumn prefWidth="334.0" sortable="false" text="Title" />
             <TableColumn editable="false" prefWidth="63.0" sortable="false" text="Duration" />
             <TableColumn prefWidth="165.0" sortable="false" text="Artist" />

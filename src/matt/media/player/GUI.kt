@@ -33,10 +33,12 @@ class GUI: Application()
         controller.window = primaryStage
         
         val t = Thread {
+            val t1 = System.currentTimeMillis()
             Platform.runLater {MediaLibrary.loadingProperty.value = true}
             MediaLibrary.loadSongs()
             MediaLibrary.loadPlaylists()
             Platform.runLater {MediaLibrary.loadingProperty.value = false}
+            println((System.currentTimeMillis() - t1) / 1000.0)
         }
         t.isDaemon = true
         t.start()

@@ -13,8 +13,7 @@ object Config
     private const val VERSION = "1.0.0"
     
     var mediaDirectory = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "Media")
-    var maxImageSize = 300
-    var unloadInvisibleSongs = true
+    var maxImageSize = 100
     var defaultPlaylistAddMode = Playlist.PlaylistAddMode.REFERENCE
 
     fun load()
@@ -42,10 +41,15 @@ object Config
                     {
                         "mediaDirectory" -> mediaDirectory = File(line[1].trim())
                         "maxImageSize" -> maxImageSize = line[1].trim().toInt()
-                        "unloadInvisibleSongs" -> unloadInvisibleSongs = line[1].trim().toBoolean()
                         "defaultPlaylistAddMode" -> defaultPlaylistAddMode = Playlist.PlaylistAddMode.valueOf(line[1].trim().toUpperCase())
-                        else -> println("Unknown setting in config\t$str")
+                        else -> println("Unknown setting in config: \"$str\"")
                     }
+                }
+                
+                if(version != VERSION)
+                {
+                    println("Config version mismatch detected. Saving config")
+                    updateConfig()
                 }
             }
             catch(ioe: IOException)
@@ -64,7 +68,6 @@ object Config
         configData.add("version: $VERSION")
         configData.add("mediaDirectory: ${mediaDirectory.path}")
         configData.add("maxImageSize: $maxImageSize")
-        configData.add("unloadInvisibleSongs: $unloadInvisibleSongs")
         configData.add("defaultPlaylistAddMode: ${defaultPlaylistAddMode.name}")
         
         println("Config updated")
