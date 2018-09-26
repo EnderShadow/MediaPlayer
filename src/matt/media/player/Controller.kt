@@ -11,26 +11,27 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.Pane
+import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
 import javafx.scene.paint.Color
 import javafx.scene.shape.Arc
 import javafx.scene.shape.Line
 import javafx.scene.shape.Polygon
 import javafx.scene.text.Text
-import javafx.stage.Popup
-import javafx.stage.Stage
-import javafx.stage.Window
+import javafx.stage.*
 import matt.media.player.music.NewPlaylistController
 import tornadofx.*
 import java.io.File
+import java.util.*
 import java.util.concurrent.Callable
 
 class Controller
 {
     lateinit var window: Window
+    lateinit var settingsWindow: Stage
     
     @FXML private lateinit var fileMenu: Menu
-    @FXML private lateinit var editMenu: Menu
+    @FXML private lateinit var helpMenu: Menu
     @FXML private lateinit var splitPane: SplitPane
     @FXML private lateinit var tabPane: TabPane
     @FXML private lateinit var busyIndicator: ProgressIndicator
@@ -163,6 +164,7 @@ class Controller
     fun shuffle()
     {
         Player.shuffling.value = !Player.shuffling.value
+        // TODO shuffling
     }
     
     fun exit()
@@ -188,5 +190,52 @@ class Controller
             MediaLibrary.addPlaylist(controller.createdPlaylist!!)
         
         return controller.createdPlaylist
+    }
+    
+    fun openSettings()
+    {
+        settingsWindow.showAndWait()
+    }
+    
+    fun importMusicFiles()
+    {
+        val chooser = FileChooser()
+        chooser.extensionFilters.clear()
+        chooser.extensionFilters.add(FileChooser.ExtensionFilter("Audio Files", supportedAudioFormats.map {"*$it"}))
+        chooser.showOpenMultipleDialog(window)?.forEach {
+            val uri = it.toURI()
+            if(uri !in MediaLibrary.songURIMap)
+                try
+                {
+                    MediaLibrary.addSong(AudioSource(uri))
+                }
+                catch(me: MediaException)
+                {
+                    println("Failed to load song. Maybe it's not a song?: ${it.absolutePath}")
+                }
+        }
+    }
+    
+    fun importMusicFolders()
+    {
+        val chooser = DirectoryChooser()
+        chooser.showDialog(window)?.let {
+            it.walkTopDown().asSequence().filter {it.isFile && isSupportedAudioFile(it.name) && it.toURI() !in MediaLibrary.songURIMap}.forEach {
+                val uri = it.toURI()
+                try
+                {
+                    MediaLibrary.addSong(AudioSource(uri))
+                }
+                catch(me: MediaException)
+                {
+                    println("Failed to load song. Maybe it's not a song?: ${it.absolutePath}")
+                }
+            }
+        }
+    }
+    
+    fun showAbout()
+    {
+        // TODO show about
     }
 }

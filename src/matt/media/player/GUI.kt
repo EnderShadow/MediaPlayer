@@ -5,6 +5,7 @@ import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
+import javafx.stage.Modality
 import javafx.stage.Stage
 
 fun main(args: Array<String>)
@@ -31,22 +32,36 @@ class GUI: Application()
         primaryStage.scene = scene
         val controller: Controller = loader.getController()
         controller.window = primaryStage
+        controller.settingsWindow = loadSettingsWindow()
         
-        val t = Thread {
-            val t1 = System.currentTimeMillis()
-            Platform.runLater {MediaLibrary.loadingProperty.value = true}
-            MediaLibrary.loadSongs()
-            MediaLibrary.loadPlaylists()
-            Platform.runLater {MediaLibrary.loadingProperty.value = false}
-            println((System.currentTimeMillis() - t1) / 1000.0)
-        }
-        t.isDaemon = true
-        t.start()
+        val t1 = System.currentTimeMillis()
+        
+        MediaLibrary.loadingProperty.value = true
+        MediaLibrary.loadSongs()
+        MediaLibrary.loadPlaylists()
+        MediaLibrary.loadingProperty.value = false
+        
+        println((System.currentTimeMillis() - t1) / 1000.0)
         
         primaryStage.setOnCloseRequest {
             it.consume()
             controller.exit()
         }
         primaryStage.show()
+    }
+    
+    private fun loadSettingsWindow(): Stage
+    {
+        val stage = Stage()
+        stage.initModality(Modality.APPLICATION_MODAL)
+        val loader = FXMLLoader(javaClass.getResource("Settings.fxml"))
+        val root: Parent = loader.load()
+        stage.title = "Settings"
+        stage.scene = Scene(root)
+        stage.scene.stylesheets.add("matt/media/player/Settings.css")
+        val controller: SettingsController = loader.getController()
+        controller.window = stage
+        
+        return stage
     }
 }

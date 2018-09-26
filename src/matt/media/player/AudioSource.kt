@@ -22,12 +22,12 @@ class AudioSource(val location: URI)
     {
         private val activeSources = LinkedList<AudioSource>()
         
-        // must only be called when synchronized on location
+        // must only be called when synchronized on AudioSource::class
         fun markActive(audioSource: AudioSource)
         {
             activeSources.remove(audioSource)
             activeSources.add(audioSource)
-            if(activeSources.size > 10)
+            while(activeSources.size > Config.maxLoadedSources)
             {
                 val oldSource = if(Player.currentlyPlaying.value is SongHandle && Player.currentlyPlaying.value?.getCurrentAudioSource() == activeSources[0])
                 {
@@ -157,7 +157,10 @@ class AudioSource(val location: URI)
         {
             if(_mediaPlayer === null)
                 _mediaPlayer = MediaPlayer(mediaSource)
-            markActive(this)
+            synchronized(AudioSource::class)
+            {
+                markActive(this)
+            }
         }
         loadImage = {}
     }

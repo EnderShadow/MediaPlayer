@@ -11,6 +11,8 @@ import javafx.scene.paint.Color
 import javafx.stage.Popup
 import javafx.util.Duration
 import java.awt.image.BufferedImage
+import java.io.File
+import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.util.ArrayList
@@ -22,7 +24,24 @@ private val imageCache = mutableListOf<Image>()
 
 val defaultImage by lazy {Image(MethodHandles.lookup().lookupClass().classLoader.getResourceAsStream("default.jpg"))}
 
+val supportedAudioFormats = listOf(".aif", ".aiff", ".fxm", ".flv", ".mp3", ".mp4", ".m4a", ".m4v", ".wav")
+
 fun isFile(uri: URI) = uri.isAbsolute && uri.scheme.equals("file", true) || uri.toURL().protocol.equals("file", true)
+
+fun isValidFilename(filename: String): Boolean
+{
+    return try
+    {
+        File(filename).canonicalPath
+        true
+    }
+    catch(ioe: IOException)
+    {
+        false
+    }
+}
+
+fun isSupportedAudioFile(filename: String) = supportedAudioFormats.any {filename.endsWith(it, true)}
 
 fun formatDuration(duration: Duration?): String
 {

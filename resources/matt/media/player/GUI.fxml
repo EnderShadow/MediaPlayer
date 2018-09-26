@@ -31,20 +31,15 @@
             <items>
               <MenuItem mnemonicParsing="false" onAction="#exit" text="Close" />
                   <SeparatorMenuItem mnemonicParsing="false" />
-                  <MenuItem mnemonicParsing="false" text="Settings" />
+                  <MenuItem mnemonicParsing="false" onAction="#openSettings" text="Settings" />
                   <SeparatorMenuItem mnemonicParsing="false" />
-                  <MenuItem mnemonicParsing="false" text="Import Files" />
-                  <MenuItem mnemonicParsing="false" text="Import Folders" />
+                  <MenuItem mnemonicParsing="false" onAction="#importMusicFiles" text="Import Files" />
+                  <MenuItem mnemonicParsing="false" onAction="#importMusicFolders" text="Import Folders" />
             </items>
           </Menu>
-          <Menu fx:id="editMenu" mnemonicParsing="false" text="Edit">
+          <Menu fx:id="helpMenu" mnemonicParsing="false" text="Help">
             <items>
-              <MenuItem mnemonicParsing="false" text="Delete" />
-            </items>
-          </Menu>
-          <Menu mnemonicParsing="false" text="Help">
-            <items>
-              <MenuItem mnemonicParsing="false" text="About" />
+              <MenuItem mnemonicParsing="false" onAction="#showAbout" text="About" />
             </items>
           </Menu>
         </menus>

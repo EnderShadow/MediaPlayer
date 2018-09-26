@@ -8,8 +8,12 @@ Currently working features
 -The time control slider  
 -The music library  
 -Persistent playlist references  
+-The config  
 
 Planned features  
+-Song/Playlist reordering  
 -The GUI  
--The config  
--See TODO.txt  
+-The artists tab  
+-The genres tab  
+-Queue viewer  
+-Shuffling

@@ -37,8 +37,7 @@ object MediaLibrary
             else
                 try
                 {
-                    val song = AudioSource(curFile.toURI())
-                    Platform.runLater {addSong(song)}
+                    addSong(AudioSource(curFile.toURI()))
                 }
                 catch(me: MediaException)
                 {
@@ -60,10 +59,8 @@ object MediaLibrary
             playlistDir.mkdirs()
         
         for(file in playlistDir.listFiles().filter {it.extension == Playlist.EXTENSION})
-            Platform.runLater {
-                if(!isPlaylistLoaded(file.nameWithoutExtension))
-                    playlists.add(Playlist(file))
-            }
+            if(!isPlaylistLoaded(file.nameWithoutExtension))
+                playlists.add(Playlist(file))
     }
     
     fun addPlaylist(playlist: Playlist)
