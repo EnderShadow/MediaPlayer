@@ -26,22 +26,22 @@ object Player
         
         val statusListener = InvalidationListener {
             if(currentlyPlaying.value is SongHandle)
-                playing.value = currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.status == Status.PLAYING
+                playing.value = currentlyPlaying.value?.getCurrentAudioSource()?.statusProperty?.value == Status.PLAYING
             else
                 playing.value = false
         }
         
         currentlyPlaying.addListener {_, oldVal, newVal ->
             if(oldVal is SongHandle)
-                oldVal.getCurrentAudioSource().mediaPlayer.statusProperty()?.removeListener(statusListener)
+                oldVal.getCurrentAudioSource().statusProperty.removeListener(statusListener)
             if(newVal is SongHandle)
-                newVal.getCurrentAudioSource().mediaPlayer.statusProperty()?.addListener(statusListener)
+                newVal.getCurrentAudioSource().statusProperty.addListener(statusListener)
             statusListener.invalidated(null)
         }
     }
     
     val status
-        get() = currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.status ?: Status.STOPPED
+        get() = currentlyPlaying.value?.getCurrentAudioSource()?.statusProperty?.value ?: Status.STOPPED
     
     var volume: Double = 1.0
     
@@ -57,7 +57,7 @@ object Player
         if(status != Status.PLAYING)
         {
             // If we're paused continue playing, otherwise find the next song to play
-            currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.play() ?: let {
+            currentlyPlaying.value?.getCurrentAudioSource()?.play() ?: let {
                 // If the queue is not recusively empty
                 if(!playlistStack[0].isRecursivelyEmpty())
                 {
@@ -65,20 +65,20 @@ object Player
                     // We're already at a song
                     if(currentlyPlaying.value is SongHandle)
                     {
-                        val player = currentlyPlaying.value!!.getCurrentAudioSource().mediaPlayer
-                        player.onEndOfMedia = Runnable {
-                            player.seek(Duration.ZERO)
+                        val audioSource = currentlyPlaying.value!!.getCurrentAudioSource()
+                        audioSource.onEndOfMedia = {
+                            audioSource.seek(Duration.ZERO)
                             if(loopMode.value == LoopMode.SINGLE)
                             {
-                                player.play()
+                                audioSource.play()
                             }
                             else
                             {
                                 next()
                             }
                         } // When the song ends it will automatically go to the next song
-                        player.volume = volume
-                        player.play()
+                        audioSource.volume = volume
+                        audioSource.play()
                     }
                     // We're not at a song
                     else
@@ -94,7 +94,7 @@ object Player
     
     fun pause()
     {
-        currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.pause()
+        currentlyPlaying.value?.getCurrentAudioSource()?.pause()
     }
     
     /**
@@ -102,9 +102,9 @@ object Player
      */
     fun stop(clearStack: Boolean = true)
     {
-        val player = currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer
-        player?.stop()
-        player?.onEndOfMedia = null
+        val audioSource = currentlyPlaying.value?.getCurrentAudioSource()
+        audioSource?.stop()
+        audioSource?.onEndOfMedia = {}
         currentlyPlaying.value = null
         
         // Reset the position in the queue to the beginning
@@ -193,9 +193,9 @@ object Player
     // or it is the first song in the queue
     fun previous()
     {
-        currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.let {
+        currentlyPlaying.value?.getCurrentAudioSource()?.let {
             // If more than 3 seconds have elapsed from the start of the song restart the song
-            if(it.currentTime.toSeconds() > 3.0)
+            if(it.currentTimeProperty.value.toSeconds() > 3.0)
             {
                 it.seek(Duration.ZERO)
             }
@@ -255,6 +255,6 @@ object Player
     fun volume(newVolume: Double)
     {
         volume = newVolume
-        currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.volume = newVolume
+        currentlyPlaying.value?.getCurrentAudioSource()?.volume = newVolume
     }
 }

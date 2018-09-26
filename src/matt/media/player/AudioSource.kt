@@ -44,38 +44,8 @@ class AudioSource(val location: URI)
     
     constructor(location: String): this(URI(location))
     
-    private var _mediaSource: Media? = null
-    private val mediaSource: Media
-        get()
-        {
-            if(_mediaSource === null)
-            {
-                _mediaSource = Media(location.toString())
-        
-                _mediaSource!!.durationProperty().addListener(InvalidationListener {durationProperty.value = _mediaSource?.duration})
-        
-                _mediaSource!!.metadata.addListener {change: MapChangeListener.Change<out String, out Any> ->
-                    if(change.valueAdded is String && (change.valueAdded as String).isBlank())
-                        return@addListener
-                    when(change.key.toLowerCase())
-                    {
-                        "title" -> titleProperty.set(change.valueAdded as String)
-                        "artist" -> artistProperty.set(change.valueAdded as String)
-                        "album" -> albumProperty.set(change.valueAdded as String)
-                        "genre" -> genreProperty.set(change.valueAdded as String)
-                        "album artist" -> albumArtistProperty.set(change.valueAdded as String)
-                        "image" -> imageProperty.set(squareAndCache(change.valueAdded as Image))
-                        "track count" -> trackCountProperty.set(change.valueAdded as Int)
-                        "track number" -> trackNumberProperty.set(change.valueAdded as Int)
-                        "year" -> yearProperty.set(change.valueAdded.toString())
-                    }
-                }
-            }
-    
-            return _mediaSource!!
-        }
     private var _mediaPlayer: MediaPlayer? = null
-    val mediaPlayer: MediaPlayer
+    private val mediaPlayer: MediaPlayer
         get()
         {
             synchronized(location)
@@ -94,7 +64,18 @@ class AudioSource(val location: URI)
     val trackCountProperty = SimpleIntegerProperty(0)
     val trackNumberProperty = SimpleIntegerProperty(0)
     val yearProperty = SimpleStringProperty("")
-    val durationProperty = SimpleObjectProperty<Duration>(Duration.ZERO)
+    val durationProperty = SimpleObjectProperty(Duration.ZERO)
+    val currentTimeProperty = SimpleObjectProperty(Duration.ZERO)
+    val statusProperty = SimpleObjectProperty(MediaPlayer.Status.UNKNOWN)
+    
+    var volume
+        get() = mediaPlayer.volume
+        set(value)
+        {
+            mediaPlayer.volume = value
+        }
+    
+    var onEndOfMedia: () -> Unit = {}
     
     lateinit var loadImage: () -> Unit
         private set
@@ -156,13 +137,56 @@ class AudioSource(val location: URI)
         synchronized(location)
         {
             if(_mediaPlayer === null)
+            {
+                val mediaSource = Media(location.toString())
+                mediaSource.durationProperty().addListener(InvalidationListener {durationProperty.value = mediaSource.duration})
+                mediaSource.metadata.addListener {change: MapChangeListener.Change<out String, out Any> ->
+                    if(change.valueAdded is String && (change.valueAdded as String).isBlank())
+                        return@addListener
+                    when(change.key.toLowerCase())
+                    {
+                        "title" -> titleProperty.set(change.valueAdded as String)
+                        "artist" -> artistProperty.set(change.valueAdded as String)
+                        "album" -> albumProperty.set(change.valueAdded as String)
+                        "genre" -> genreProperty.set(change.valueAdded as String)
+                        "album artist" -> albumArtistProperty.set(change.valueAdded as String)
+                        "image" -> imageProperty.set(squareAndCache(change.valueAdded as Image))
+                        "track count" -> trackCountProperty.set(change.valueAdded as Int)
+                        "track number" -> trackNumberProperty.set(change.valueAdded as Int)
+                        "year" -> yearProperty.set(change.valueAdded.toString())
+                    }
+                }
                 _mediaPlayer = MediaPlayer(mediaSource)
+                _mediaPlayer!!.onEndOfMedia = Runnable {onEndOfMedia()}
+            }
+            _mediaPlayer!!.currentTimeProperty().addListener(InvalidationListener {currentTimeProperty.value = _mediaPlayer!!.currentTime})
+            _mediaPlayer!!.statusProperty().addListener(InvalidationListener {statusProperty.value = _mediaPlayer!!.status})
             synchronized(AudioSource::class)
             {
                 markActive(this)
             }
         }
         loadImage = {}
+    }
+    
+    fun play()
+    {
+        mediaPlayer.play()
+    }
+    
+    fun pause()
+    {
+        mediaPlayer.pause()
+    }
+    
+    fun stop()
+    {
+        mediaPlayer.stop()
+    }
+    
+    fun seek(position: Duration)
+    {
+        mediaPlayer.seek(position)
     }
     
     // should only be called in the companion object
@@ -172,7 +196,6 @@ class AudioSource(val location: URI)
         {
             _mediaPlayer?.dispose()
             _mediaPlayer = null
-            _mediaSource = null
         }
     }
     

@@ -66,8 +66,8 @@ class Controller
         
         val timeChangeListener = InvalidationListener {
             if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
-                playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.mediaPlayer?.let {
-                    it.currentTime.toMillis() / it.totalDuration.toMillis()
+                playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
+                    it.currentTimeProperty.value.toMillis() / it.durationProperty.value.toMillis()
                 } ?: 0.0
             else
                 playbackLocationSlider.valueProperty().value = 0.0
@@ -75,22 +75,22 @@ class Controller
         
         Player.currentlyPlaying.addListener {_, oldValue, newValue ->
             if(oldValue is SongHandle)
-                oldValue.getCurrentAudioSource().mediaPlayer.currentTimeProperty()?.removeListener(timeChangeListener)
+                oldValue.getCurrentAudioSource().currentTimeProperty.removeListener(timeChangeListener)
             if(newValue is SongHandle)
-                newValue.getCurrentAudioSource().mediaPlayer.currentTimeProperty()?.addListener(timeChangeListener)
+                newValue.getCurrentAudioSource().currentTimeProperty.addListener(timeChangeListener)
             timeChangeListener.invalidated(null)
         }
         playbackLocationSlider.disableProperty().bind(Player.currentlyPlaying.isNull)
         playbackLocationSlider.setOnMousePressed {Player.pause()}
         playbackLocationSlider.setOnMouseReleased {
             Player.play()
-            Player.currentlyPlaying.value!!.getCurrentAudioSource().mediaPlayer.run {seek(totalDuration.multiply(playbackLocationSlider.value))}
+            Player.currentlyPlaying.value!!.getCurrentAudioSource().run {seek(durationProperty.value.multiply(playbackLocationSlider.value))}
         }
         playbackLocationSlider.valueChangingProperty().addListener(InvalidationListener {
             if(!playbackLocationSlider.isValueChanging)
             {
                 Player.pause()
-                Player.currentlyPlaying.value!!.getCurrentAudioSource().mediaPlayer.run {seek(totalDuration.multiply(playbackLocationSlider.value))}
+                Player.currentlyPlaying.value!!.getCurrentAudioSource().run {seek(durationProperty.value.multiply(playbackLocationSlider.value))}
                 Player.play()
             }
         })
