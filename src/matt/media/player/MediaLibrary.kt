@@ -9,6 +9,7 @@ import javafx.collections.ObservableMap
 import javafx.scene.media.MediaException
 import matt.media.player.music.PlaylistTabController
 import java.io.File
+import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
 
@@ -37,9 +38,9 @@ object MediaLibrary
             else
                 try
                 {
-                    addSong(AudioSource(curFile.toURI()))
+                    addSong(AudioSource.create(curFile.toURI()))
                 }
-                catch(me: MediaException)
+                catch(_: IllegalArgumentException)
                 {
                     println("Failed to load song. Maybe it's not a song?: ${curFile.absolutePath}")
                 }

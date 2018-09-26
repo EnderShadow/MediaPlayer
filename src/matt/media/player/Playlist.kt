@@ -46,7 +46,7 @@ class Playlist(name: String): Observable, InvalidationListener
                 try
                 {
                     // try to load it as a song
-                    val song = AudioSource(it)
+                    val song = AudioSource.create(it)
                     MediaLibrary.addSong(song)
                     addSong(song)
                 }

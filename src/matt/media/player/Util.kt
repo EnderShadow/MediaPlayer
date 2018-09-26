@@ -24,8 +24,6 @@ private val imageCache = mutableListOf<Image>()
 
 val defaultImage by lazy {Image(MethodHandles.lookup().lookupClass().classLoader.getResourceAsStream("default.jpg"))}
 
-val supportedAudioFormats = listOf(".aif", ".aiff", ".fxm", ".flv", ".mp3", ".mp4", ".m4a", ".m4v", ".wav")
-
 fun isFile(uri: URI) = uri.isAbsolute && uri.scheme.equals("file", true) || uri.toURL().protocol.equals("file", true)
 
 fun isValidFilename(filename: String): Boolean
@@ -40,8 +38,6 @@ fun isValidFilename(filename: String): Boolean
         false
     }
 }
-
-fun isSupportedAudioFile(filename: String) = supportedAudioFormats.any {filename.endsWith(it, true)}
 
 fun formatDuration(duration: Duration?): String
 {

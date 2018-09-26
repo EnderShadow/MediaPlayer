@@ -1,9 +1,7 @@
 package matt.media.player
 
 import javafx.beans.InvalidationListener
-import javafx.beans.Observable
 import javafx.beans.binding.Bindings
-import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -11,7 +9,6 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.Pane
-import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
 import javafx.scene.paint.Color
 import javafx.scene.shape.Arc
@@ -20,9 +17,8 @@ import javafx.scene.shape.Polygon
 import javafx.scene.text.Text
 import javafx.stage.*
 import matt.media.player.music.NewPlaylistController
-import tornadofx.*
 import java.io.File
-import java.util.*
+import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
 
 class Controller
@@ -200,16 +196,14 @@ class Controller
     fun importMusicFiles()
     {
         val chooser = FileChooser()
-        chooser.extensionFilters.clear()
-        chooser.extensionFilters.add(FileChooser.ExtensionFilter("Audio Files", supportedAudioFormats.map {"*$it"}))
         chooser.showOpenMultipleDialog(window)?.forEach {
             val uri = it.toURI()
             if(uri !in MediaLibrary.songURIMap)
                 try
                 {
-                    MediaLibrary.addSong(AudioSource(uri))
+                    MediaLibrary.addSong(AudioSource.create(uri))
                 }
-                catch(me: MediaException)
+                catch(_: IllegalArgumentException)
                 {
                     println("Failed to load song. Maybe it's not a song?: ${it.absolutePath}")
                 }
@@ -220,13 +214,13 @@ class Controller
     {
         val chooser = DirectoryChooser()
         chooser.showDialog(window)?.let {
-            it.walkTopDown().asSequence().filter {it.isFile && isSupportedAudioFile(it.name) && it.toURI() !in MediaLibrary.songURIMap}.forEach {
+            it.walkTopDown().asSequence().filter {it.isFile && it.toURI() !in MediaLibrary.songURIMap}.forEach {
                 val uri = it.toURI()
                 try
                 {
-                    MediaLibrary.addSong(AudioSource(uri))
+                    MediaLibrary.addSong(AudioSource.create(uri))
                 }
-                catch(me: MediaException)
+                catch(_: IllegalArgumentException)
                 {
                     println("Failed to load song. Maybe it's not a song?: ${it.absolutePath}")
                 }

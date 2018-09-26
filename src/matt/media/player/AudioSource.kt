@@ -1,22 +1,19 @@
 package matt.media.player
 
-import javafx.beans.InvalidationListener
-import javafx.beans.property.SimpleIntegerProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.collections.MapChangeListener
+import javafx.beans.property.*
 import javafx.scene.image.Image
-import javafx.scene.media.Media
+import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
 
-class AudioSource(val location: URI)
+abstract class AudioSource(val location: URI)
 {
     companion object
     {
@@ -40,45 +37,43 @@ class AudioSource(val location: URI)
                 oldSource.dispose()
             }
         }
+    
+        /**
+         * Creates an instance of AudioSource based on the provided uri
+         */
+        fun create(uri: URI): AudioSource
+        {
+            if(JavaFXAudioSource.isSupported(uri))
+            {
+                try
+                {
+                    return JavaFXAudioSource(uri)
+                }
+                catch(me: MediaException) {}
+            }
+            throw IllegalArgumentException("Unsupported audio format: $uri")
+        }
     }
     
-    constructor(location: String): this(URI(location))
+    abstract val titleProperty: StringProperty
+    abstract val artistProperty: StringProperty
+    abstract val albumProperty: StringProperty
+    abstract val genreProperty: StringProperty
+    abstract val albumArtistProperty: StringProperty
+    abstract val imageProperty: ObjectProperty<Image>
+    abstract val trackCountProperty: IntegerProperty
+    abstract val trackNumberProperty: IntegerProperty
+    abstract val yearProperty: StringProperty
+    abstract val durationProperty: ObjectProperty<Duration>
+    abstract val currentTimeProperty: ObjectProperty<Duration>
+    abstract val statusProperty: ObjectProperty<MediaPlayer.Status>
     
-    private var _mediaPlayer: MediaPlayer? = null
-    private val mediaPlayer: MediaPlayer
-        get()
-        {
-            synchronized(location)
-            {
-                init()
-                return _mediaPlayer!!
-            }
-        }
-    
-    val titleProperty = SimpleStringProperty(if(isFile(location)) File(location).nameWithoutExtension else "Unknown")
-    val artistProperty = SimpleStringProperty("Unknown")
-    val albumProperty = SimpleStringProperty("Unknown")
-    val genreProperty = SimpleStringProperty("")
-    val albumArtistProperty = SimpleStringProperty("")
-    val imageProperty = SimpleObjectProperty(defaultImage)
-    val trackCountProperty = SimpleIntegerProperty(0)
-    val trackNumberProperty = SimpleIntegerProperty(0)
-    val yearProperty = SimpleStringProperty("")
-    val durationProperty = SimpleObjectProperty(Duration.ZERO)
-    val currentTimeProperty = SimpleObjectProperty(Duration.ZERO)
-    val statusProperty = SimpleObjectProperty(MediaPlayer.Status.UNKNOWN)
-    
-    var volume
-        get() = mediaPlayer.volume
-        set(value)
-        {
-            mediaPlayer.volume = value
-        }
+    abstract var volume: Double
     
     var onEndOfMedia: () -> Unit = {}
     
-    lateinit var loadImage: () -> Unit
-        private set
+    var loadImage: () -> Unit = {}
+        protected set
     
     init
     {
@@ -86,10 +81,11 @@ class AudioSource(val location: URI)
         if(isFile(location)) try
         {
             val audioFile = AudioFileIO.read(File(location))
-        
+            
             val header = audioFile.audioHeader
+            @Suppress("LeakingThis")
             durationProperty.value = Duration.seconds(header.preciseTrackLength)
-        
+    
             val tag = audioFile.tag
             if(tag != null)
             {
@@ -128,79 +124,18 @@ class AudioSource(val location: URI)
         
         if(!loaded)
         {
+            @Suppress("LeakingThis")
             init()
         }
     }
     
-    private fun init()
-    {
-        synchronized(location)
-        {
-            if(_mediaPlayer === null)
-            {
-                val mediaSource = Media(location.toString())
-                mediaSource.durationProperty().addListener(InvalidationListener {durationProperty.value = mediaSource.duration})
-                mediaSource.metadata.addListener {change: MapChangeListener.Change<out String, out Any> ->
-                    if(change.valueAdded is String && (change.valueAdded as String).isBlank())
-                        return@addListener
-                    when(change.key.toLowerCase())
-                    {
-                        "title" -> titleProperty.set(change.valueAdded as String)
-                        "artist" -> artistProperty.set(change.valueAdded as String)
-                        "album" -> albumProperty.set(change.valueAdded as String)
-                        "genre" -> genreProperty.set(change.valueAdded as String)
-                        "album artist" -> albumArtistProperty.set(change.valueAdded as String)
-                        "image" -> imageProperty.set(squareAndCache(change.valueAdded as Image))
-                        "track count" -> trackCountProperty.set(change.valueAdded as Int)
-                        "track number" -> trackNumberProperty.set(change.valueAdded as Int)
-                        "year" -> yearProperty.set(change.valueAdded.toString())
-                    }
-                }
-                _mediaPlayer = MediaPlayer(mediaSource)
-                _mediaPlayer!!.onEndOfMedia = Runnable {onEndOfMedia()}
-            }
-            _mediaPlayer!!.currentTimeProperty().addListener(InvalidationListener {currentTimeProperty.value = _mediaPlayer!!.currentTime})
-            _mediaPlayer!!.statusProperty().addListener(InvalidationListener {statusProperty.value = _mediaPlayer!!.status})
-            synchronized(AudioSource::class)
-            {
-                markActive(this)
-            }
-        }
-        loadImage = {}
-    }
+    protected abstract fun init()
+    protected abstract fun dispose()
     
-    fun play()
-    {
-        mediaPlayer.play()
-    }
+    abstract fun play()
+    abstract fun pause()
+    abstract fun stop()
+    abstract fun seek(position: Duration)
     
-    fun pause()
-    {
-        mediaPlayer.pause()
-    }
-    
-    fun stop()
-    {
-        mediaPlayer.stop()
-    }
-    
-    fun seek(position: Duration)
-    {
-        mediaPlayer.seek(position)
-    }
-    
-    // should only be called in the companion object
-    private fun dispose()
-    {
-        synchronized(location)
-        {
-            _mediaPlayer?.dispose()
-            _mediaPlayer = null
-        }
-    }
-    
-    override fun toString(): String
-    {
-        return location.toString()
-    }
+    override fun toString() = location.toString()
 }
