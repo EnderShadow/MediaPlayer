@@ -55,18 +55,18 @@ abstract class AudioSource(val location: URI)
         }
     }
     
-    abstract val titleProperty: StringProperty
-    abstract val artistProperty: StringProperty
-    abstract val albumProperty: StringProperty
-    abstract val genreProperty: StringProperty
-    abstract val albumArtistProperty: StringProperty
-    abstract val imageProperty: ObjectProperty<Image>
-    abstract val trackCountProperty: IntegerProperty
-    abstract val trackNumberProperty: IntegerProperty
-    abstract val yearProperty: StringProperty
-    abstract val durationProperty: ObjectProperty<Duration>
-    abstract val currentTimeProperty: ObjectProperty<Duration>
-    abstract val statusProperty: ObjectProperty<MediaPlayer.Status>
+    val titleProperty = SimpleStringProperty(if(isFile(location)) File(location).nameWithoutExtension else "Unknown")
+    val artistProperty = SimpleStringProperty("Unknown")
+    val albumProperty = SimpleStringProperty("Unknown")
+    val genreProperty = SimpleStringProperty("")
+    val albumArtistProperty = SimpleStringProperty("")
+    val imageProperty = SimpleObjectProperty(defaultImage)
+    val trackCountProperty = SimpleIntegerProperty(0)
+    val trackNumberProperty = SimpleIntegerProperty(0)
+    val yearProperty = SimpleStringProperty("")
+    val durationProperty = SimpleObjectProperty(Duration.ZERO)
+    val currentTimeProperty = SimpleObjectProperty(Duration.ZERO)
+    val statusProperty = SimpleObjectProperty(MediaPlayer.Status.UNKNOWN)
     
     abstract var volume: Double
     
@@ -83,7 +83,6 @@ abstract class AudioSource(val location: URI)
             val audioFile = AudioFileIO.read(File(location))
             
             val header = audioFile.audioHeader
-            @Suppress("LeakingThis")
             durationProperty.value = Duration.seconds(header.preciseTrackLength)
     
             val tag = audioFile.tag

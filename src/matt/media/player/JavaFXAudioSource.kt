@@ -31,19 +31,6 @@ class JavaFXAudioSource(location: URI): AudioSource(location)
             }
         }
     
-    override val titleProperty = SimpleStringProperty(if(isFile(location)) File(location).nameWithoutExtension else "Unknown")
-    override val artistProperty = SimpleStringProperty("Unknown")
-    override val albumProperty = SimpleStringProperty("Unknown")
-    override val genreProperty = SimpleStringProperty("")
-    override val albumArtistProperty = SimpleStringProperty("")
-    override val imageProperty = SimpleObjectProperty(defaultImage)
-    override val trackCountProperty = SimpleIntegerProperty(0)
-    override val trackNumberProperty = SimpleIntegerProperty(0)
-    override val yearProperty = SimpleStringProperty("")
-    override val durationProperty = SimpleObjectProperty(Duration.ZERO)
-    override val currentTimeProperty = SimpleObjectProperty(Duration.ZERO)
-    override val statusProperty = SimpleObjectProperty(MediaPlayer.Status.UNKNOWN)
-    
     override var volume
         get() = mediaPlayer.volume
         set(value)
