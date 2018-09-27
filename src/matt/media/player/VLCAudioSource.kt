@@ -140,10 +140,10 @@ class VLCAudioSource(location: URI): AudioSource(location)
     
     override fun play()
     {
-        if(vlcPlayer!!.mrl() != media.mrl())
-            vlcPlayer.playMedia(media)
+        if(statusProperty.value == Status.PAUSED)
+            vlcPlayer!!.pause()
         else
-            vlcPlayer.play()
+            vlcPlayer!!.playMedia(media)
     }
     
     override fun pause()
