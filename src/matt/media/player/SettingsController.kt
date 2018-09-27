@@ -18,6 +18,7 @@ class SettingsController
     private val directoryChooser = DirectoryChooser()
     
     @FXML private lateinit var musicDirectory: TextField
+    @FXML private lateinit var vlcDirectory: TextField
     @FXML private lateinit var maxImageSize: TextField
     @FXML private lateinit var maxLoadedSources: TextField
     @FXML private lateinit var defaultPlaylistAddMode: ChoiceBox<Playlist.PlaylistAddMode>
@@ -36,6 +37,7 @@ class SettingsController
     {
         directoryChooser.initialDirectory = Config.mediaDirectory
         musicDirectory.text = Config.mediaDirectory.absolutePath
+        vlcDirectory.text = Config.vlcDirectory.absolutePath
         maxImageSize.text = Config.maxImageSize.toString()
         maxLoadedSources.text = Config.maxLoadedSources.toString()
         defaultPlaylistAddMode.value = Config.defaultPlaylistAddMode
@@ -44,6 +46,11 @@ class SettingsController
     fun changeMediaDir()
     {
         directoryChooser.showDialog(window)?.let {musicDirectory.text = it.absolutePath}
+    }
+    
+    fun changeVLCDir()
+    {
+        directoryChooser.showDialog(window)?.let {vlcDirectory.text = it.absolutePath}
     }
     
     fun save()
@@ -59,6 +66,17 @@ class SettingsController
         else
         {
             musicDirectory.styleClass.remove("error")
+        }
+    
+        if(!isValidFilename(vlcDirectory.text))
+        {
+            valid = false
+            if("error" !in vlcDirectory.styleClass)
+                vlcDirectory.styleClass.add("error")
+        }
+        else
+        {
+            vlcDirectory.styleClass.remove("error")
         }
         
         if(maxImageSize.text.toIntOrNull() == null)
@@ -109,6 +127,7 @@ class SettingsController
         if(valid)
         {
             Config.mediaDirectory = File(musicDirectory.text)
+            Config.vlcDirectory = File(vlcDirectory.text)
             Config.maxImageSize = maxImageSize.text.toInt()
             Config.maxLoadedSources = maxLoadedSources.text.toInt()
             Config.defaultPlaylistAddMode = defaultPlaylistAddMode.value

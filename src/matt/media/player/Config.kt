@@ -13,6 +13,7 @@ object Config
     private const val VERSION = "1.0.0"
     
     var mediaDirectory = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "Media")
+    var vlcDirectory = File("")
     var maxImageSize = 100
     var maxLoadedSources = 10
     var defaultPlaylistAddMode = Playlist.PlaylistAddMode.REFERENCE
@@ -41,6 +42,7 @@ object Config
                     when(line[0].trim())
                     {
                         "mediaDirectory" -> mediaDirectory = File(line[1].trim())
+                        "vlcDirectory" -> vlcDirectory = File(line[1].trim())
                         "maxImageSize" -> maxImageSize = line[1].trim().toInt()
                         "maxLoadedSources" -> maxLoadedSources = line[1].trim().toInt()
                         "defaultPlaylistAddMode" -> defaultPlaylistAddMode = Playlist.PlaylistAddMode.valueOf(line[1].trim().toUpperCase())
@@ -69,6 +71,7 @@ object Config
         val configData = ArrayList<String>()
         configData.add("version: $VERSION")
         configData.add("mediaDirectory: ${mediaDirectory.path}")
+        configData.add("vlcDirectory: ${vlcDirectory.path}")
         configData.add("maxImageSize: $maxImageSize")
         configData.add("maxLoadedSources: $maxLoadedSources")
         configData.add("defaultPlaylistAddMode: ${defaultPlaylistAddMode.name}")

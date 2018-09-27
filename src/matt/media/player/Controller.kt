@@ -166,6 +166,7 @@ class Controller
     fun exit()
     {
         Player.stop()
+        VLCAudioSource.shutdown()
         window.hide()
         val playlistDir = File(Config.mediaDirectory, "Playlists")
         MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(playlistDir)}

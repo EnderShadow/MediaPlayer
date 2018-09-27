@@ -1,12 +1,13 @@
 package matt.media.player
 
+import com.sun.jna.NativeLibrary
 import javafx.application.Application
-import javafx.application.Platform
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Modality
 import javafx.stage.Stage
+import uk.co.caprica.vlcj.discovery.NativeDiscovery
 
 fun main(args: Array<String>)
 {
@@ -24,6 +25,8 @@ class GUI: Application()
     override fun start(primaryStage: Stage)
     {
         Config.load()
+        NativeLibrary.addSearchPath("libvlc", Config.vlcDirectory.path)
+        NativeDiscovery().discover() // discovers VLC
         val loader = FXMLLoader(javaClass.getResource("GUI.fxml"))
         val root: Parent = loader.load()
         primaryStage.title = "Resonant Music Player"

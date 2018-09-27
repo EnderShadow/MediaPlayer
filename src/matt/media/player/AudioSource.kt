@@ -43,11 +43,25 @@ abstract class AudioSource(val location: URI)
          */
         fun create(uri: URI): AudioSource
         {
+            if(VLCAudioSource.isSupported(uri))
+            {
+                try
+                {
+                    val vlcas = VLCAudioSource(uri) as AudioSource
+                    if(!vlcas.loaded)
+                        vlcas.init()
+                    return vlcas
+                }
+                catch(e: Exception) {}
+            }
             if(JavaFXAudioSource.isSupported(uri))
             {
                 try
                 {
-                    return JavaFXAudioSource(uri)
+                    val jfxas = JavaFXAudioSource(uri) as AudioSource
+                    if(!jfxas.loaded)
+                        jfxas.init()
+                    return jfxas
                 }
                 catch(me: MediaException) {}
             }
@@ -75,9 +89,10 @@ abstract class AudioSource(val location: URI)
     var loadImage: () -> Unit = {}
         protected set
     
+    protected var loaded = false
+    
     init
     {
-        var loaded = false
         if(isFile(location)) try
         {
             val audioFile = AudioFileIO.read(File(location))
@@ -119,12 +134,6 @@ abstract class AudioSource(val location: URI)
         catch(e: Throwable)
         {
             System.err.println("Failed to read metadata from audio source. Fully loading audio source instead.")
-        }
-        
-        if(!loaded)
-        {
-            @Suppress("LeakingThis")
-            init()
         }
     }
     
