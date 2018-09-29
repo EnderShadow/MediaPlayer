@@ -9,9 +9,9 @@ Currently working features
 -The music library  
 -Persistent playlist references  
 -The config  
+-Song/Playlist reordering  
 
 Planned features  
--Song/Playlist reordering  
 -The GUI  
 -The artists tab  
 -The genres tab  

@@ -1,0 +1,9 @@
+.table-row-cell.drag-upper {
+    -fx-background-color: -fx-table-cell-border-color, #00a9d3, -fx-background;
+    -fx-background-insets: 0, 0 0 1 0, 2 0 1 0;
+}
+
+.table-row-cell.drag-lower {
+    -fx-background-color: -fx-table-cell-border-color, #00a9d3, -fx-background;
+    -fx-background-insets: 0, 1 0 0 0, 1 0 2 0;
+}

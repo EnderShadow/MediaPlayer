@@ -6,6 +6,7 @@ import javafx.scene.control.TableView
 import javafx.scene.control.skin.TableViewSkin
 import javafx.scene.control.skin.VirtualFlow
 import javafx.scene.image.Image
+import javafx.scene.input.DataFormat
 import javafx.scene.paint.Color
 import javafx.util.Duration
 import java.awt.image.BufferedImage
@@ -16,6 +17,8 @@ import java.net.URI
 import java.util.ArrayList
 
 var DEBUG = false
+
+val SERIALIZED_MIME_TYPE = DataFormat("application/x-java-serialized-object")
 
 private val imageCache = mutableListOf<Image>()
 

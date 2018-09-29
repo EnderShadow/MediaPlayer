@@ -14,7 +14,9 @@ import javafx.geometry.Pos
 import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
+import javafx.scene.input.ClipboardContent
 import javafx.scene.input.MouseButton
+import javafx.scene.input.TransferMode
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
@@ -81,6 +83,10 @@ class PlaylistTabController: TabController()
             if(it.target != addToNewPlaylist)
                 return@setOnAction
             createPlaylistFromSelectedPlaylist(Config.defaultPlaylistAddMode)
+            var parent = addToNewPlaylist
+            while(parent.parentMenu != null)
+                parent = parent.parentMenu
+            parent.parentPopup.hide()
         }
         
         val addToPlaylist = Menu("Add to playlist", null, addToNewPlaylist)
@@ -105,11 +111,15 @@ class PlaylistTabController: TabController()
                     playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.FLATTENED)
                 }
                 val playlistMenu = Menu(playlist.name, null, byReference, byContents, byFlattened)
-                playlistMenu.setOnAction {_ ->
+                playlistMenu.setOnAction {it ->
                     if(it.target != playlistMenu)
                         return@setOnAction
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
                     playlist.addPlaylist(playlistToAdd, Config.defaultPlaylistAddMode)
+                    var parent = playlistMenu
+                    while(parent.parentMenu != null)
+                        parent = parent.parentMenu
+                    parent.parentPopup.hide()
                 }
                 addToPlaylist.items.add(playlistMenu)
             }
@@ -306,6 +316,7 @@ class PlaylistTabController: TabController()
             loader.setRoot(this)
             loader.setController(this)
             loader.load<Any?>()
+            stylesheets.add("matt/media/player/music/playlistViewer.css")
         
             val addToQueue = MenuItem("Add to queue")
             addToQueue.setOnAction {mediaListTableView.selectionModel.selectedItems.forEach(Player::enqueue)}
@@ -354,8 +365,92 @@ class PlaylistTabController: TabController()
                 it.consume()
             }
             viewPlaylist.visibleProperty().bind(Bindings.createBooleanBinding(Callable {selectionModel.selectedItems.size == 1 && selectionModel.selectedItem is PlaylistHandle}, selectionModel.selectedItems))
-        
-            val contextMenu = ContextMenu(addToQueue, deleteSongs, addToPlaylist, viewPlaylist)
+            
+            val replaceContents = MenuItem("Contents")
+            replaceContents.setOnAction {
+                val selectedPlaylist = selectionModel.selectedItem
+                val selectedIndex = selectionModel.selectedIndex
+                playlist.removeMedia(selectedPlaylist)
+                playlist.addPlaylist(selectedIndex, selectedPlaylist.getPlaylist(), Playlist.PlaylistAddMode.CONTENTS)
+            }
+            val replaceFlattened = MenuItem("Flattened contents")
+            replaceFlattened.setOnAction {
+                val selectedPlaylist = selectionModel.selectedItem
+                val selectedIndex = selectionModel.selectedIndex
+                playlist.removeMedia(selectedPlaylist)
+                playlist.addPlaylist(selectedIndex, selectedPlaylist.getPlaylist(), Playlist.PlaylistAddMode.FLATTENED)
+            }
+            val replacePlaylist = Menu("Replace with...", null, replaceContents, replaceFlattened)
+            replacePlaylist.visibleProperty().bind(Bindings.createBooleanBinding(Callable {selectionModel.selectedItems.size == 1 && selectionModel.selectedItem is PlaylistHandle}, selectionModel.selectedItems))
+            
+            mediaListTableView.setRowFactory {tableView ->
+                val row = TableRow<MediaHandle>()
+                
+                row.setOnDragDetected {
+                    if(!row.isEmpty)
+                    {
+                        val dragBoard = row.startDragAndDrop(TransferMode.MOVE)
+                        dragBoard.dragView = row.snapshot(null, null)
+                        val clipboard = ClipboardContent()
+                        clipboard[SERIALIZED_MIME_TYPE] = tableView.selectionModel.selectedIndices.toList()
+                        dragBoard.setContent(clipboard)
+                        it.consume()
+                    }
+                }
+                
+                row.setOnDragOver {
+                    if(it.dragboard.hasContent(SERIALIZED_MIME_TYPE))
+                    {
+                        val upperHalf = it.y  < row.height / 2.0
+                        if(upperHalf)
+                        {
+                            if("drag-upper" !in row.styleClass)
+                                row.styleClass.add("drag-upper")
+                            row.styleClass.remove("drag-lower")
+                        }
+                        else
+                        {
+                            if("drag-lower" !in row.styleClass)
+                                row.styleClass.add("drag-lower")
+                            row.styleClass.remove("drag-upper")
+                        }
+                        it.acceptTransferModes(*TransferMode.COPY_OR_MOVE)
+                        it.consume()
+                    }
+                }
+                
+                row.setOnDragExited {
+                    row.styleClass.remove("drag-upper")
+                    row.styleClass.remove("drag-lower")
+                    it.consume()
+                }
+                
+                row.setOnDragDropped {event ->
+                    val dragboard = event.dragboard
+                    if(dragboard.hasContent(SERIALIZED_MIME_TYPE))
+                    {
+                        @Suppress("UNCHECKED_CAST")
+                        val indices = dragboard.getContent(SERIALIZED_MIME_TYPE) as? List<Int>
+                        if(indices != null)
+                        {
+                            val upperHalf = event.y  < row.height / 2.0
+                            row.styleClass.remove("drag-upper")
+                            row.styleClass.remove("drag-lower")
+                            val targetIndex = row.index + if(upperHalf) 0 else 1
+                            val media = indices.map {playlist.media[it]}
+                            val newIndex = playlist.moveMedia(targetIndex, media)
+                            event.isDropCompleted = true
+                            tableView.selectionModel.clearSelection()
+                            tableView.selectionModel.selectRange(newIndex, newIndex + media.size)
+                            event.consume()
+                        }
+                    }
+                }
+                
+                row
+            }
+            
+            val contextMenu = ContextMenu(addToQueue, deleteSongs, addToPlaylist, viewPlaylist, replacePlaylist)
             mediaListTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
             mediaListTableView.columns.forEach {col ->
                 val oldFactory = col.cellFactory

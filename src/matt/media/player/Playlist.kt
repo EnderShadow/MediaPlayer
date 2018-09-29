@@ -198,12 +198,14 @@ class Playlist(name: String): Observable, InvalidationListener
     
     fun addPlaylist(playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE) = addPlaylist(contents.size, playlist, addMode)
     
-    fun moveMedia(index: Int, mediaHandles: List<MediaHandle>)
+    fun moveMedia(index: Int, mediaHandles: List<MediaHandle>): Int
     {
+        if(mediaHandles.isEmpty())
+            return index
         if(mediaHandles.any {it !in contents})
             throw IllegalArgumentException("One or more songs is not in the playlist")
         
-        val numBefore = mediaHandles.filter {contents.indexOf(it) < index}.size
+        val numBefore = mediaHandles.count {contents.indexOf(it) < index}
         contents.removeAll(mediaHandles)
         contents.addAll(index - numBefore, mediaHandles)
         if(Player.currentlyPlaying.value in contents)
@@ -211,6 +213,8 @@ class Playlist(name: String): Observable, InvalidationListener
             Player.mediaIndexStack.pop()
             Player.mediaIndexStack.push(contents.indexOf(Player.currentlyPlaying.value))
         }
+        dirty = true
+        return index - numBefore
     }
     
     private fun removeMedia0(mediaHandle: MediaHandle)
