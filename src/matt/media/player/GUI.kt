@@ -36,6 +36,7 @@ class GUI: Application()
         val controller: Controller = loader.getController()
         controller.window = primaryStage
         controller.settingsWindow = loadSettingsWindow()
+        controller.postInit()
         
         val t1 = System.currentTimeMillis()
         

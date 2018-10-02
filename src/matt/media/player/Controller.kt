@@ -2,11 +2,20 @@ package matt.media.player
 
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.collections.FXCollections
+import javafx.event.EventType
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.image.ImageView
+import javafx.scene.input.ClipboardContent
+import javafx.scene.input.MouseButton
+import javafx.scene.input.TransferMode
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.Pane
 import javafx.scene.media.MediaPlayer
@@ -16,7 +25,11 @@ import javafx.scene.shape.Line
 import javafx.scene.shape.Polygon
 import javafx.scene.text.Text
 import javafx.stage.*
+import javafx.util.Callback
+import javafx.util.Duration
 import matt.media.player.music.NewPlaylistController
+import matt.media.player.music.PlaylistTabController
+import org.controlsfx.control.PopOver
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
@@ -34,6 +47,7 @@ class Controller
     @FXML lateinit var filterField: TextField
     @FXML private lateinit var playbackLocationSlider: Slider
     @FXML private lateinit var mediaControlPane: AnchorPane
+    @FXML private lateinit var currentlyPlayingText: Text
     @FXML private lateinit var loopSongButton: Button
     @FXML private lateinit var loopIcon1: Arc
     @FXML private lateinit var loopIcon2: Polygon
@@ -49,6 +63,9 @@ class Controller
     @FXML private lateinit var shuffleIcon3: Line
     @FXML private lateinit var shuffleIcon4: Polygon
     @FXML private lateinit var volumeSlider: Slider
+    @FXML private lateinit var showQueueButton: Button
+    
+    private val queuePopOver = PopOver()
     
     fun initialize()
     {
@@ -94,7 +111,15 @@ class Controller
         volumeSlider.valueProperty().addListener {_ ->
             Player.volume(volumeSlider.value)
         }
-    
+        
+        Player.currentlyPlaying.addListener {_, _, newMedia ->
+            if(newMedia != null && newMedia is SongHandle)
+                currentlyPlayingText.text = "Currently playing: ${newMedia.getCurrentAudioSource().titleProperty.value}"
+            else
+                currentlyPlayingText.text = "Currently playing:"
+        }
+        currentlyPlayingText.wrappingWidthProperty().bind(loopSongButton.layoutXProperty().subtract(20))
+        
         var colorBinding = Bindings.`when`(Player.loopMode.isEqualTo(LoopMode.NONE)).then(Color.valueOf("BLACK")).otherwise(Color.valueOf("#FF7300"))
         loopIcon1.strokeProperty().bind(colorBinding)
         loopIcon2.strokeProperty().bind(colorBinding)
@@ -121,6 +146,30 @@ class Controller
         //registerTab("music/AlbumTab.fxml", "Albums")
         //registerTab("music/ArtistTab.fxml", "Artists")
         //registerTab("music/GenreTab.fxml", "Genres")
+        
+        queuePopOver.contentNode = QueueViewer()
+        queuePopOver.arrowLocation = PopOver.ArrowLocation.BOTTOM_LEFT
+        queuePopOver.fadeInDuration = Duration.millis(100.0)
+        queuePopOver.fadeOutDuration = Duration.millis(100.0)
+        
+        showQueueButton.setOnAction {_ ->
+            if(queuePopOver.isShowing)
+            {
+                queuePopOver.hide()
+            }
+            else
+            {
+                queuePopOver.show(showQueueButton, -6.0)
+                Player.currentlyPlaying.value?.let {
+                    (queuePopOver.contentNode as QueueViewer).scrollTo(it)
+                }
+            }
+        }
+    }
+    
+    fun postInit()
+    {
+        (queuePopOver.contentNode as QueueViewer).setPrefWidth()
     }
     
     private fun registerTab(fxmlPath: String, tabName: String)
@@ -160,13 +209,13 @@ class Controller
     fun shuffle()
     {
         Player.shuffling.value = !Player.shuffling.value
-        // TODO shuffling
     }
     
     fun exit()
     {
         Player.stop()
         VLCAudioSource.shutdown()
+        queuePopOver.hide(Duration.ZERO)
         window.hide()
         val playlistDir = File(Config.mediaDirectory, "Playlists")
         MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(playlistDir)}
@@ -232,5 +281,70 @@ class Controller
     fun showAbout()
     {
         // TODO show about
+    }
+    
+    private inner class QueueViewer: TableView<MediaHandle>()
+    {
+        init
+        {
+            stylesheets.add("matt/media/player/music/playlistViewer.css")
+            
+            val imageColumn = TableColumn<MediaHandle, ImageView>("Image")
+            imageColumn.isSortable = false
+            imageColumn.isEditable = false
+            imageColumn.prefWidth = 50.0
+            val titleColumn = TableColumn<MediaHandle, String>("Title")
+            titleColumn.isSortable = false
+            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(113))
+            val durationColumn = TableColumn<MediaHandle, String>("Duration")
+            durationColumn.isSortable = false
+            durationColumn.isEditable = false
+            durationColumn.prefWidth = 63.0
+            
+            columns.addAll(imageColumn, titleColumn, durationColumn)
+            columns.forEach {col ->
+                val oldFactory = col.cellFactory
+                val cellFactory = Callback<TableColumn<MediaHandle, out Any>, TableCell<MediaHandle, out Any>> {_ ->
+                    val cell = oldFactory.call(null)
+                    cell.setOnMouseClicked {
+                        if(it.button == MouseButton.PRIMARY && it.clickCount >= 2 && it.pickResult.intersectedNode != null)
+                        {
+                            val selected = selectionModel.selectedItem
+                            Player.jumpTo(selected)
+                            it.consume()
+                        }
+                    }
+                    cell
+                }
+                col.cellFactory = cellFactory
+            }
+            
+            imageColumn.setCellValueFactory {
+                val imageView = ImageView()
+                imageView.imageProperty().bind(it.value.getCurrentAudioSource().imageProperty)
+                imageView.fitWidthProperty().bind(it.tableColumn.widthProperty())
+                imageView.isSmooth = true
+                imageView.isCache = true
+                imageView.isPreserveRatio = true
+                SimpleObjectProperty(imageView)
+            }
+            titleColumn.setCellValueFactory {it.value.getCurrentAudioSource().titleProperty}
+            durationColumn.setCellValueFactory {Bindings.createStringBinding(Callable {formatDuration(it.value.getCurrentAudioSource().durationProperty.value)}, it.value.getCurrentAudioSource().durationProperty)}
+        
+            addEventHandler(EventType.ROOT) {getVisible(this).forEach {it.getCurrentAudioSource().loadImage()}}
+            
+            items = FXCollections.observableArrayList()
+            val flatView = Player.playlistStack[0].flatView()
+            flatView.addListener {
+                items.clear()
+                items.addAll(flatView.songs)
+            }
+        }
+        
+        fun setPrefWidth()
+        {
+            prefWidthProperty().bind(window.widthProperty().multiply(0.3))
+            prefHeightProperty().bind(window.heightProperty().multiply(0.7))
+        }
     }
 }

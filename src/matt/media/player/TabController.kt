@@ -7,7 +7,7 @@ abstract class TabController
     abstract fun init()
     
     /**
-     * Called when the Node associated with the controller is show
+     * Called when the Node associated with the controller is shown
      */
     open fun onSelected() {}
 }

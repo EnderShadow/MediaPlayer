@@ -318,6 +318,13 @@ class PlaylistTabController: TabController()
             loader.load<Any?>()
             stylesheets.add("matt/media/player/music/playlistViewer.css")
         
+            val play = MenuItem("Play")
+            play.setOnAction {
+                Player.clearQueue()
+                mediaListTableView.selectionModel.selectedItems.forEach(Player::enqueue)
+                Player.play()
+            }
+            
             val addToQueue = MenuItem("Add to queue")
             addToQueue.setOnAction {mediaListTableView.selectionModel.selectedItems.forEach(Player::enqueue)}
         
@@ -450,7 +457,7 @@ class PlaylistTabController: TabController()
                 row
             }
             
-            val contextMenu = ContextMenu(addToQueue, deleteSongs, addToPlaylist, viewPlaylist, replacePlaylist)
+            val contextMenu = ContextMenu(play, addToQueue, deleteSongs, addToPlaylist, viewPlaylist, replacePlaylist)
             mediaListTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
             mediaListTableView.columns.forEach {col ->
                 val oldFactory = col.cellFactory

@@ -48,15 +48,27 @@ class VLCAudioSource(location: URI): AudioSource(location)
                 {
                     mediaPlayer.toAudioSource().statusProperty.value = Status.STOPPED
                 }
-    
+                
+                // Apparently this doesn't gets called
                 override fun finished(mediaPlayer: MediaPlayer)
                 {
-                    mediaPlayer.toAudioSource().onEndOfMedia()
+                    //Player.currentlyPlaying.value!!.getCurrentAudioSource().onEndOfMedia()
+                }
+    
+                override fun error(mediaPlayer: MediaPlayer)
+                {
+                    Player.currentlyPlaying.value!!.getCurrentAudioSource().onEndOfMedia()
                 }
     
                 override fun timeChanged(mediaPlayer: MediaPlayer, newTime: Long)
                 {
-                    Platform.runLater {mediaPlayer.toAudioSource().currentTimeProperty.value = Duration.millis(newTime.toDouble())}
+                    val audioSource = mediaPlayer.toAudioSource()
+                    Platform.runLater {audioSource.currentTimeProperty.value = Duration.millis(newTime.toDouble())}
+                    // Since finished never gets called, I treat the song as over when there's less than 600 milliseconds left
+                    // since testing has brought me to the conclusion that that's the least you can skip before the song stops playing.
+                    // Testing hasn't shown any noticeable parts of a song getting skipped from this.
+                    if(audioSource.durationProperty.value.toMillis().toLong() - 600 <= newTime)
+                        audioSource.onEndOfMedia()
                 }
     
                 override fun mediaDurationChanged(mediaPlayer: MediaPlayer, newDuration: Long)

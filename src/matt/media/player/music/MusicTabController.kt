@@ -19,6 +19,13 @@ class MusicTabController: TabController()
     
     override fun init()
     {
+        val play = MenuItem("Play")
+        play.setOnAction {
+            Player.clearQueue()
+            musicListTableView.selectionModel.selectedItems.forEach(Player::enqueue)
+            Player.play()
+        }
+        
         val addToQueue = MenuItem("Add to queue")
         addToQueue.setOnAction {musicListTableView.selectionModel.selectedItems.forEach(Player::enqueue)}
         
@@ -42,7 +49,7 @@ class MusicTabController: TabController()
         }
         addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
         
-        val contextMenu = ContextMenu(addToQueue, deleteSongs, addToPlaylist)
+        val contextMenu = ContextMenu(play, addToQueue, deleteSongs, addToPlaylist)
         musicListTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
         musicListTableView.columns.forEach {col ->
             val oldFactory = col.cellFactory

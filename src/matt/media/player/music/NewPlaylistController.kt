@@ -7,7 +7,7 @@ import javafx.stage.Window
 import matt.media.player.MediaLibrary
 import matt.media.player.Playlist
 
-class NewPlaylistController()
+class NewPlaylistController
 {
     lateinit var window: Window
     

@@ -10,10 +10,10 @@ Currently working features
 -Persistent playlist references  
 -The config  
 -Song/Playlist reordering  
+-Queue viewer  
+-Shuffling
 
 Planned features  
 -The GUI  
 -The artists tab  
 -The genres tab  
--Queue viewer  
--Shuffling

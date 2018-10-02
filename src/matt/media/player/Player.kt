@@ -138,8 +138,16 @@ object Player
     
     // This function will always cause playlistStack.peek() and mediaIndexStack.peek() to point to a song unless the queue is recursively empty
     // in which case it will point to the beginning of the queue
-    fun next()
+    fun next(ignoreShuffle: Boolean = false)
     {
+        if(!ignoreShuffle && shuffling.value)
+        {
+            val flatView = playlistStack[0].flatView()
+            val randIndex = (Math.random() * flatView.songs.size).toInt()
+            jumpTo(flatView.songs[randIndex])
+            return
+        }
+        
         // This code deals with the situation where we're at the beginning of the queue but the first MediaHandle is for a playlist and not a song
         playlistStack.peek().media[mediaIndexStack.peek()].takeIf {it is PlaylistHandle && !it.getPlaylist().isRecursivelyEmpty()}?.let {
             mediaIndexStack.push(mediaIndexStack.pop() - 1)
@@ -256,5 +264,13 @@ object Player
     {
         volume = newVolume
         currentlyPlaying.value?.getCurrentAudioSource()?.volume = newVolume
+    }
+    
+    fun jumpTo(mediaHandle: MediaHandle)
+    {
+        stop()
+        while(Player.playlistStack.peek().media[Player.mediaIndexStack.peek()] != mediaHandle)
+            Player.next(true)
+        play()
     }
 }

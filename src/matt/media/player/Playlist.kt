@@ -308,4 +308,54 @@ class Playlist(name: String): Observable, InvalidationListener
         Files.write(saveLoc.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         dirty = false
     }
+    
+    fun flatView() = FlatPlaylistView(this)
+}
+
+class FlatPlaylistView(val playlist: Playlist): Observable
+{
+    private val listeners = mutableListOf<InvalidationListener>()
+    
+    private var songsInternal = mutableListOf<SongHandle>()
+    val songs: List<SongHandle>
+        get() = songsInternal
+    
+    init
+    {
+        reset()
+        playlist.addListener {
+            reset()
+        }
+    }
+    
+    private fun reset()
+    {
+        val songs = playlist.media.toMutableList()
+        var index = 0
+        while(index < songs.size)
+        {
+            if(songs[index] is SongHandle)
+            {
+                index++
+            }
+            else
+            {
+                val media = songs.removeAt(index).getPlaylist().media
+                songs.addAll(index, media)
+            }
+        }
+        @Suppress("UNCHECKED_CAST")
+        songsInternal = songs as MutableList<SongHandle>
+        listeners.forEach {it.invalidated(this)}
+    }
+    
+    override fun removeListener(listener: InvalidationListener)
+    {
+        listeners.remove(listener)
+    }
+    
+    override fun addListener(listener: InvalidationListener)
+    {
+        listeners.add(listener)
+    }
 }
