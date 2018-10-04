@@ -13,7 +13,6 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.lang.Exception
 import java.net.URI
-import java.net.URLDecoder
 import kotlin.math.roundToInt
 
 class VLCAudioSource(location: URI): AudioSource(location)
@@ -80,7 +79,7 @@ class VLCAudioSource(location: URI): AudioSource(location)
                 {
                     val meta = mediaPlayer.mediaMeta
                     val audioSource = mediaPlayer.toAudioSource()
-                    (audioSource as VLCAudioSource).run {
+                    audioSource.run {
                         durationProperty.value = Duration.millis(meta.length.toDouble())
                         artistProperty.value = meta.artist
                         albumProperty.value = meta.album
@@ -112,7 +111,7 @@ class VLCAudioSource(location: URI): AudioSource(location)
             })
         }
         
-        fun MediaPlayer.toAudioSource() = MediaLibrary.songs.first {it.titleProperty.value == mediaMeta.title}!!
+        fun MediaPlayer.toAudioSource() = MediaLibrary.songs.first {it is VLCAudioSource && mediaMeta.title == it.titleProperty.value} as VLCAudioSource
         
         fun shutdown()
         {

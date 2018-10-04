@@ -112,8 +112,8 @@ abstract class AudioSource(val location: URI)
                 tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
                 tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
                 
-                val artworkData = tag.firstArtwork?.binaryData
                 loadImage = {
+                    val artworkData = tag.firstArtwork?.binaryData
                     if(artworkData != null)
                     {
                         val image = Image(ByteArrayInputStream(artworkData))
@@ -146,4 +146,8 @@ abstract class AudioSource(val location: URI)
     abstract fun seek(position: Duration)
     
     override fun toString() = location.toString()
+    override fun equals(other: Any?): Boolean
+    {
+        return other is AudioSource && other.location == location
+    }
 }

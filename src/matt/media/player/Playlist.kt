@@ -5,6 +5,7 @@ import javafx.beans.Observable
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import java.io.File
 import java.net.URI
@@ -13,10 +14,27 @@ import java.nio.file.StandardOpenOption
 
 class Playlist(name: String): Observable, InvalidationListener
 {
+    // Playlist extension
+    companion object
+    {
+        const val EXTENSION = "m3u8"
+    }
+    
+    private val listeners = mutableListOf<InvalidationListener>()
+    
+    val flatView by lazy {FlatPlaylistView(this)}
+    
     val nameProperty = SimpleStringProperty(name)
     var name
         get() = nameProperty.value
         set(value) = nameProperty.set(value)
+    
+    // This is used to keep track of the playlists and songs inside this playlist
+    private val contents = FXCollections.observableArrayList<MediaHandle>()
+    val media: ObservableList<MediaHandle> = FXCollections.unmodifiableObservableList(contents)
+    private var numSongs = 0
+    private val playlists = mutableListOf<Playlist>()
+    var dirty = false
     
     constructor(file: File): this(file.nameWithoutExtension)
     {
@@ -61,23 +79,6 @@ class Playlist(name: String): Observable, InvalidationListener
         dirty = false
     }
     
-    private val listeners = mutableListOf<InvalidationListener>()
-    
-    override fun addListener(listener: InvalidationListener)
-    {
-        listeners.add(listener)
-    }
-    
-    override fun removeListener(listener: InvalidationListener)
-    {
-        listeners.remove(listener)
-    }
-    
-    override fun invalidated(observable: Observable)
-    {
-        listeners.forEach {it.invalidated(this)}
-    }
-    
     /**
      * These modes are used for adding playlists to this playlist.
      *
@@ -89,19 +90,6 @@ class Playlist(name: String): Observable, InvalidationListener
     {
         REFERENCE, CONTENTS, FLATTENED
     }
-    
-    // Playlist extension
-    companion object
-    {
-        const val EXTENSION = "m3u8"
-    }
-    
-    // This is used to keep track of the playlists and songs inside this playlist
-    private val contents = FXCollections.observableArrayList<MediaHandle>()
-    val media: ObservableList<MediaHandle> = FXCollections.unmodifiableObservableList(contents)
-    private var numSongs = 0
-    private val playlists = mutableListOf<Playlist>()
-    var dirty = false
     
     // Recursively determines the size of the playlist
     fun size(): Int = numSongs + playlists.map {it.size()}.sum()
@@ -233,12 +221,22 @@ class Playlist(name: String): Observable, InvalidationListener
     {
         if(mediaHandle in contents)
         {
-            val playing = Player.currentlyPlaying.value == mediaHandle
+            val playing = when
+            {
+                mediaHandle is SongHandle -> Player.currentlyPlaying.value == mediaHandle
+                Player.currentlyPlaying.value != null -> mediaHandle.getPlaylist().containsRecursive(Player.currentlyPlaying.value!!)
+                else -> false
+            }
+            val paused = Player.status == MediaPlayer.Status.PAUSED
             if(playing)
                 Player.stop(false)
             removeMedia0(mediaHandle)
             if(playing)
+            {
                 Player.play()
+                if(paused)
+                    Player.pause()
+            }
         }
     }
     
@@ -284,6 +282,13 @@ class Playlist(name: String): Observable, InvalidationListener
         return playlists.any {it.containsPlaylistRecursive(playlist)}
     }
     
+    fun containsRecursive(mediaHandle: MediaHandle): Boolean
+    {
+        if(mediaHandle in contents)
+            return true
+        return playlists.any {it.containsRecursive(mediaHandle)}
+    }
+    
     fun clearPlaylist()
     {
         contents.clear()
@@ -309,7 +314,20 @@ class Playlist(name: String): Observable, InvalidationListener
         dirty = false
     }
     
-    fun flatView() = FlatPlaylistView(this)
+    override fun addListener(listener: InvalidationListener)
+    {
+        listeners.add(listener)
+    }
+    
+    override fun removeListener(listener: InvalidationListener)
+    {
+        listeners.remove(listener)
+    }
+    
+    override fun invalidated(observable: Observable)
+    {
+        listeners.forEach {it.invalidated(this)}
+    }
 }
 
 class FlatPlaylistView(val playlist: Playlist): Observable

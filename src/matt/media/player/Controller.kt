@@ -160,8 +160,24 @@ class Controller
             else
             {
                 queuePopOver.show(showQueueButton, -6.0)
-                Player.currentlyPlaying.value?.let {
-                    (queuePopOver.contentNode as QueueViewer).scrollTo(it)
+                Player.currentlyPlaying.value?.let {selectedItem ->
+                    val queueViewer = (queuePopOver.contentNode as QueueViewer)
+                    if(queueViewer.tabPane.selectionModel.selectedItem.text.equals("flat view", true))
+                    {
+                        queueViewer.flatViewTableView.scrollTo(selectedItem as SongHandle)
+                    }
+                    else
+                    {
+                        if(selectedItem in Player.playlistStack[0].media)
+                        {
+                            queueViewer.playlistViewTableView.scrollTo(selectedItem)
+                        }
+                        else
+                        {
+                            val item = Player.playlistStack[0].media.asSequence().filter {it is PlaylistHandle}.first {it.getPlaylist().containsRecursive(selectedItem)}
+                            queueViewer.playlistViewTableView.scrollTo(item)
+                        }
+                    }
                 }
             }
         }
@@ -283,33 +299,44 @@ class Controller
         // TODO show about
     }
     
-    private inner class QueueViewer: TableView<MediaHandle>()
+    inner class QueueViewer: AnchorPane()
     {
+        @FXML lateinit var tabPane: TabPane
+        @FXML lateinit var playlistViewTableView: TableView<MediaHandle>
+        @FXML lateinit var flatViewTableView: TableView<SongHandle>
+        
         init
         {
-            stylesheets.add("matt/media/player/music/playlistViewer.css")
-            
-            val imageColumn = TableColumn<MediaHandle, ImageView>("Image")
-            imageColumn.isSortable = false
-            imageColumn.isEditable = false
-            imageColumn.prefWidth = 50.0
-            val titleColumn = TableColumn<MediaHandle, String>("Title")
-            titleColumn.isSortable = false
+            val loader = FXMLLoader(QueueViewer::class.java.getResource("QueueViewer.fxml"))
+            loader.setRoot(this)
+            loader.setController(this)
+            loader.load<Any?>()
+        }
+        
+        fun initialize()
+        {
+            initFlatView()
+            initPlaylistView()
+        }
+        
+        private fun initFlatView()
+        {
+            @Suppress("UNCHECKED_CAST")
+            val imageColumn = flatViewTableView.columns[0] as TableColumn<SongHandle, ImageView>
+            @Suppress("UNCHECKED_CAST")
+            val titleColumn = flatViewTableView.columns[1] as TableColumn<SongHandle, String>
             titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(113))
-            val durationColumn = TableColumn<MediaHandle, String>("Duration")
-            durationColumn.isSortable = false
-            durationColumn.isEditable = false
-            durationColumn.prefWidth = 63.0
-            
-            columns.addAll(imageColumn, titleColumn, durationColumn)
-            columns.forEach {col ->
+            @Suppress("UNCHECKED_CAST")
+            val durationColumn = flatViewTableView.columns[2] as TableColumn<SongHandle, String>
+    
+            flatViewTableView.columns.forEach {col ->
                 val oldFactory = col.cellFactory
-                val cellFactory = Callback<TableColumn<MediaHandle, out Any>, TableCell<MediaHandle, out Any>> {_ ->
+                val cellFactory = Callback<TableColumn<SongHandle, out Any>, TableCell<SongHandle, out Any>> {_ ->
                     val cell = oldFactory.call(null)
                     cell.setOnMouseClicked {
                         if(it.button == MouseButton.PRIMARY && it.clickCount >= 2 && it.pickResult.intersectedNode != null)
                         {
-                            val selected = selectionModel.selectedItem
+                            val selected = flatViewTableView.selectionModel.selectedItem
                             Player.jumpTo(selected)
                             it.consume()
                         }
@@ -318,7 +345,7 @@ class Controller
                 }
                 col.cellFactory = cellFactory
             }
-            
+    
             imageColumn.setCellValueFactory {
                 val imageView = ImageView()
                 imageView.imageProperty().bind(it.value.getCurrentAudioSource().imageProperty)
@@ -330,21 +357,204 @@ class Controller
             }
             titleColumn.setCellValueFactory {it.value.getCurrentAudioSource().titleProperty}
             durationColumn.setCellValueFactory {Bindings.createStringBinding(Callable {formatDuration(it.value.getCurrentAudioSource().durationProperty.value)}, it.value.getCurrentAudioSource().durationProperty)}
-        
-            addEventHandler(EventType.ROOT) {getVisible(this).forEach {it.getCurrentAudioSource().loadImage()}}
-            
-            items = FXCollections.observableArrayList()
-            val flatView = Player.playlistStack[0].flatView()
+    
+            addEventHandler(EventType.ROOT) {getVisible(flatViewTableView).forEach {it.getCurrentAudioSource().loadImage()}}
+    
+            flatViewTableView.items = FXCollections.observableArrayList()
+            val flatView = Player.playlistStack[0].flatView
             flatView.addListener {
-                items.clear()
-                items.addAll(flatView.songs)
+                flatViewTableView.items.run {
+                    clear()
+                    addAll(flatView.songs)
+                }
             }
+        }
+        
+        private fun initPlaylistView()
+        {
+            playlistViewTableView.stylesheets.add("matt/media/player/music/PlaylistViewer.css")
+            
+            val playlist = Player.playlistStack[0]
+            
+            val deleteSongs = MenuItem("Delete")
+            deleteSongs.setOnAction {
+                playlistViewTableView.selectionModel.selectedItems.toList().forEach(playlist::removeMedia)
+            }
+    
+            val newPlaylist = MenuItem("New playlist...")
+            newPlaylist.setOnAction {
+                val playlist = requestCreatePlaylist()
+                if(playlist != null)
+                    playlistViewTableView.selectionModel.selectedItems.forEach {mh ->
+                        if(mh is SongHandle)
+                            playlist.addSong(mh.getCurrentAudioSource())
+                        else
+                            playlist.addPlaylist(mh.getPlaylist())
+                    }
+            }
+    
+            val addToPlaylist = Menu("Add to playlist", null, newPlaylist)
+            addToPlaylist.setOnShowing {_ ->
+                MediaLibrary.playlists.forEach {playlist ->
+                    val playlistMenu = MenuItem(playlist.name)
+                    playlistMenu.setOnAction {playlistViewTableView.selectionModel.selectedItems.forEach {mh ->
+                        if(mh is SongHandle)
+                            playlist.addSong(mh.getCurrentAudioSource())
+                        else
+                            playlist.addPlaylist(mh.getPlaylist())
+                    }}
+                    addToPlaylist.items.add(playlistMenu)
+                }
+            }
+            addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+            
+            playlistViewTableView.setRowFactory {tableView ->
+                val row = TableRow<MediaHandle>()
+        
+                row.setOnDragDetected {
+                    if(!row.isEmpty)
+                    {
+                        val dragBoard = row.startDragAndDrop(TransferMode.MOVE)
+                        dragBoard.dragView = row.snapshot(null, null)
+                        val clipboard = ClipboardContent()
+                        clipboard[SERIALIZED_MIME_TYPE] = tableView.selectionModel.selectedIndices.toList()
+                        dragBoard.setContent(clipboard)
+                        it.consume()
+                    }
+                }
+        
+                row.setOnDragOver {
+                    if(it.dragboard.hasContent(SERIALIZED_MIME_TYPE))
+                    {
+                        val upperHalf = it.y  < row.height / 2.0
+                        if(upperHalf)
+                        {
+                            if("drag-upper" !in row.styleClass)
+                                row.styleClass.add("drag-upper")
+                            row.styleClass.remove("drag-lower")
+                        }
+                        else
+                        {
+                            if("drag-lower" !in row.styleClass)
+                                row.styleClass.add("drag-lower")
+                            row.styleClass.remove("drag-upper")
+                        }
+                        it.acceptTransferModes(*TransferMode.COPY_OR_MOVE)
+                        it.consume()
+                    }
+                }
+        
+                row.setOnDragExited {
+                    row.styleClass.remove("drag-upper")
+                    row.styleClass.remove("drag-lower")
+                    it.consume()
+                }
+        
+                row.setOnDragDropped {event ->
+                    val dragboard = event.dragboard
+                    if(dragboard.hasContent(SERIALIZED_MIME_TYPE))
+                    {
+                        @Suppress("UNCHECKED_CAST")
+                        val indices = dragboard.getContent(SERIALIZED_MIME_TYPE) as? List<Int>
+                        if(indices != null)
+                        {
+                            val upperHalf = event.y  < row.height / 2.0
+                            row.styleClass.remove("drag-upper")
+                            row.styleClass.remove("drag-lower")
+                            val targetIndex = row.index + if(upperHalf) 0 else 1
+                            val media = indices.map {playlist.media[it]}
+                            val newIndex = playlist.moveMedia(targetIndex, media)
+                            event.isDropCompleted = true
+                            tableView.selectionModel.clearSelection()
+                            tableView.selectionModel.selectRange(newIndex, newIndex + media.size)
+                            event.consume()
+                        }
+                    }
+                }
+        
+                row
+            }
+    
+            val contextMenu = ContextMenu(deleteSongs, addToPlaylist)
+            playlistViewTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
+            
+            @Suppress("UNCHECKED_CAST")
+            val imageColumn = playlistViewTableView.columns[0] as TableColumn<MediaHandle, ImageView>
+            @Suppress("UNCHECKED_CAST")
+            val titleColumn = playlistViewTableView.columns[1] as TableColumn<MediaHandle, String>
+            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(113))
+            @Suppress("UNCHECKED_CAST")
+            val durationColumn = playlistViewTableView.columns[2] as TableColumn<MediaHandle, String>
+    
+            playlistViewTableView.columns.forEach {col ->
+                val oldFactory = col.cellFactory
+                val cellFactory = Callback<TableColumn<MediaHandle, out Any>, TableCell<MediaHandle, out Any>> {_ ->
+                    val cell = oldFactory.call(null)
+                    cell.contextMenu = contextMenu
+                    cell.setOnMouseClicked {
+                        if(it.button == MouseButton.PRIMARY && it.clickCount >= 2 && it.pickResult.intersectedNode != null)
+                        {
+                            val selected = playlistViewTableView.selectionModel.selectedItem
+                            if(selected is SongHandle)
+                                Player.jumpTo(selected)
+                            else if(!(selected as PlaylistHandle).getPlaylist().isRecursivelyEmpty())
+                                Player.jumpTo(selected.getPlaylist().flatView.songs[0])
+                            it.consume()
+                        }
+                        else if(it.button == MouseButton.SECONDARY)
+                        {
+                            cell.contextMenu.show(queuePopOver)
+                        }
+                    }
+                    cell
+                }
+                col.cellFactory = cellFactory
+            }
+    
+            imageColumn.setCellValueFactory {
+                val imageView = ImageView()
+                if(it.value is PlaylistHandle)
+                {
+                    if(it.value.getPlaylist().isRecursivelyEmpty())
+                        imageView.image = defaultImage
+                    else
+                        imageView.image = it.value.getPlaylist().getSong(0).getCurrentAudioSource().imageProperty.value
+                }
+                else
+                {
+                    imageView.imageProperty().bind(it.value.getCurrentAudioSource().imageProperty)
+                }
+                imageView.fitWidthProperty().bind(it.tableColumn.widthProperty())
+                imageView.isSmooth = true
+                imageView.isCache = true
+                imageView.isPreserveRatio = true
+                SimpleObjectProperty(imageView)
+            }
+            titleColumn.setCellValueFactory {
+                if(it.value is PlaylistHandle)
+                    it.value.getPlaylist().nameProperty
+                else
+                    it.value.getCurrentAudioSource().titleProperty
+            }
+            durationColumn.setCellValueFactory {
+                if(it.value is PlaylistHandle)
+                    Bindings.createStringBinding(Callable {formatDuration(it.value.getPlaylist().getDuration())}, it.value.getPlaylist())
+                else
+                    Bindings.createStringBinding(Callable {formatDuration(it.value.getCurrentAudioSource().durationProperty.value)}, it.value.getCurrentAudioSource().durationProperty)
+            }
+    
+            addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {it.getAudioSource(0).loadImage()}}
+    
+            playlistViewTableView.items = Player.playlistStack[0].media
         }
         
         fun setPrefWidth()
         {
             prefWidthProperty().bind(window.widthProperty().multiply(0.3))
             prefHeightProperty().bind(window.heightProperty().multiply(0.7))
+            heightProperty().addListener {_ ->
+                println("$width $height")
+            }
         }
     }
 }

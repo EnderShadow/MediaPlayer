@@ -17,6 +17,11 @@ class NewPlaylistController
     @FXML private lateinit var playlistName: TextField
     @FXML private lateinit var playlistDescription: TextArea
     
+    fun initialize()
+    {
+        playlistName.stylesheets.add("matt/media/player/Settings.css")
+    }
+    
     fun createPlaylistPressed()
     {
         val name = playlistName.text
@@ -24,6 +29,11 @@ class NewPlaylistController
         {
             createdPlaylist = Playlist(name)
             window.hide()
+        }
+        else
+        {
+            if("error" !in playlistName.styleClass)
+                playlistName.styleClass.add("error")
         }
     }
     

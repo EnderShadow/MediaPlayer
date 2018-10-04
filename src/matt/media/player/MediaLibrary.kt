@@ -1,12 +1,9 @@
 package matt.media.player
 
-import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
-import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
-import javafx.scene.media.MediaException
 import matt.media.player.music.PlaylistTabController
 import java.io.File
 import java.lang.IllegalArgumentException

@@ -142,7 +142,7 @@ object Player
     {
         if(!ignoreShuffle && shuffling.value)
         {
-            val flatView = playlistStack[0].flatView()
+            val flatView = playlistStack[0].flatView
             val randIndex = (Math.random() * flatView.songs.size).toInt()
             jumpTo(flatView.songs[randIndex])
             return
