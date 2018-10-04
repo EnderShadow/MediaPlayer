@@ -87,10 +87,8 @@ object MediaLibrary
             while(it.containsSong(audioSource))
                 it.removeSong(audioSource)
         }
-        Player.playlistStack.forEach {
-            while(it.containsSong(audioSource))
-                it.removeSong(audioSource)
-        }
+        while(Player.queue.containsSong(audioSource))
+            Player.queue.removeSong(audioSource)
         songs.remove(audioSource)
         songURIMap.remove(audioSource.location)
         if(isFile(audioSource.location))

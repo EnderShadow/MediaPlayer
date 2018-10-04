@@ -196,12 +196,12 @@ class Playlist(name: String): Observable, InvalidationListener
         val numBefore = mediaHandles.count {contents.indexOf(it) < index}
         contents.removeAll(mediaHandles)
         contents.addAll(index - numBefore, mediaHandles)
-        if(Player.currentlyPlaying.value in contents)
-        {
-            Player.mediaIndexStack.pop()
-            Player.mediaIndexStack.push(contents.indexOf(Player.currentlyPlaying.value))
-        }
         dirty = true
+        invalidated(this)
+        if(Player.currentlyPlaying.value != null && Player.queue.containsPlaylistRecursive(this))
+        {
+            Player.queueIndex = Player.flatQueue.songs.indexOf(Player.currentlyPlaying.value)
+        }
         return index - numBefore
     }
     
@@ -221,22 +221,12 @@ class Playlist(name: String): Observable, InvalidationListener
     {
         if(mediaHandle in contents)
         {
-            val playing = when
+            if(Player.queue.containsRecursive(mediaHandle) && Player.currentlyPlaying.value?.let{containsRecursive(it)} == true)
             {
-                mediaHandle is SongHandle -> Player.currentlyPlaying.value == mediaHandle
-                Player.currentlyPlaying.value != null -> mediaHandle.getPlaylist().containsRecursive(Player.currentlyPlaying.value!!)
-                else -> false
+                while(Player.currentlyPlaying.value?.let {containsRecursive(it)} == true)
+                    Player.next()
             }
-            val paused = Player.status == MediaPlayer.Status.PAUSED
-            if(playing)
-                Player.stop(false)
             removeMedia0(mediaHandle)
-            if(playing)
-            {
-                Player.play()
-                if(paused)
-                    Player.pause()
-            }
         }
     }
     

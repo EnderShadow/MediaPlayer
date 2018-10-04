@@ -2,9 +2,7 @@ package matt.media.player
 
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
-import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.event.EventType
 import javafx.fxml.FXML
@@ -28,7 +26,6 @@ import javafx.stage.*
 import javafx.util.Callback
 import javafx.util.Duration
 import matt.media.player.music.NewPlaylistController
-import matt.media.player.music.PlaylistTabController
 import org.controlsfx.control.PopOver
 import java.io.File
 import java.lang.IllegalArgumentException
@@ -75,7 +72,7 @@ class Controller
         
         playButtonIcon.visibleProperty().bind(Player.playing.not())
         pauseButtonIcon.visibleProperty().bind(Player.playing)
-        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.playlistStack[0].isRecursivelyEmpty()}, Player.playlistStack[0]))
+        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
         
         val timeChangeListener = InvalidationListener {
             if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
@@ -126,8 +123,8 @@ class Controller
         loopIcon2.fillProperty().bind(colorBinding)
         loopSingleIcon.visibleProperty().bind(Player.loopMode.isEqualTo(LoopMode.SINGLE))
         
-        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.playlistStack[0].isRecursivelyEmpty()}, Player.playlistStack[0]))
-        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.playlistStack[0].isRecursivelyEmpty()}, Player.playlistStack[0]))
+        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
+        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
         
         colorBinding = Bindings.`when`(Player.shuffling).then(Color.valueOf("#FF7300")).otherwise(Color.valueOf("BLACK"))
         shuffleIcon1.strokeProperty().bind(colorBinding)
@@ -168,13 +165,13 @@ class Controller
                     }
                     else
                     {
-                        if(selectedItem in Player.playlistStack[0].media)
+                        if(selectedItem in Player.queue.media)
                         {
                             queueViewer.playlistViewTableView.scrollTo(selectedItem)
                         }
                         else
                         {
-                            val item = Player.playlistStack[0].media.asSequence().filter {it is PlaylistHandle}.first {it.getPlaylist().containsRecursive(selectedItem)}
+                            val item = Player.queue.media.asSequence().filter {it is PlaylistHandle}.first {it.getPlaylist().containsRecursive(selectedItem)}
                             queueViewer.playlistViewTableView.scrollTo(item)
                         }
                     }
@@ -361,11 +358,10 @@ class Controller
             addEventHandler(EventType.ROOT) {getVisible(flatViewTableView).forEach {it.getCurrentAudioSource().loadImage()}}
     
             flatViewTableView.items = FXCollections.observableArrayList()
-            val flatView = Player.playlistStack[0].flatView
-            flatView.addListener {
+            Player.flatQueue.addListener {
                 flatViewTableView.items.run {
                     clear()
-                    addAll(flatView.songs)
+                    addAll(Player.flatQueue.songs)
                 }
             }
         }
@@ -374,7 +370,7 @@ class Controller
         {
             playlistViewTableView.stylesheets.add("matt/media/player/music/PlaylistViewer.css")
             
-            val playlist = Player.playlistStack[0]
+            val playlist = Player.queue
             
             val deleteSongs = MenuItem("Delete")
             deleteSongs.setOnAction {
@@ -383,13 +379,13 @@ class Controller
     
             val newPlaylist = MenuItem("New playlist...")
             newPlaylist.setOnAction {
-                val playlist = requestCreatePlaylist()
-                if(playlist != null)
+                val createdPlaylist = requestCreatePlaylist()
+                if(createdPlaylist != null)
                     playlistViewTableView.selectionModel.selectedItems.forEach {mh ->
                         if(mh is SongHandle)
-                            playlist.addSong(mh.getCurrentAudioSource())
+                            createdPlaylist.addSong(mh.getCurrentAudioSource())
                         else
-                            playlist.addPlaylist(mh.getPlaylist())
+                            createdPlaylist.addPlaylist(mh.getPlaylist())
                     }
             }
     
@@ -407,6 +403,51 @@ class Controller
                 }
             }
             addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+            
+            val selectionModel = playlistViewTableView.selectionModel
+            
+            val replaceContents = MenuItem("Contents")
+            replaceContents.setOnAction {
+                val selectedPlaylist = selectionModel.selectedItem
+                val selectedIndex = selectionModel.selectedIndex
+                
+                val paused = Player.status == MediaPlayer.Status.PAUSED
+                val time = Player.currentlyPlaying.value?.getCurrentAudioSource()?.currentTimeProperty?.value
+                Player.stop(false)
+                
+                playlist.removeMedia(selectedPlaylist)
+                playlist.addPlaylist(selectedIndex, selectedPlaylist.getPlaylist(), Playlist.PlaylistAddMode.CONTENTS)
+                
+                if(time != null)
+                {
+                    Player.play()
+                    Player.currentlyPlaying.value!!.getCurrentAudioSource().seek(time)
+                    if(paused)
+                        Player.pause()
+                }
+            }
+            val replaceFlattened = MenuItem("Flattened contents")
+            replaceFlattened.setOnAction {
+                val selectedPlaylist = selectionModel.selectedItem
+                val selectedIndex = selectionModel.selectedIndex
+                
+                val paused = Player.status == MediaPlayer.Status.PAUSED
+                val time = Player.currentlyPlaying.value?.getCurrentAudioSource()?.currentTimeProperty?.value
+                Player.stop(false)
+                
+                playlist.removeMedia(selectedPlaylist)
+                playlist.addPlaylist(selectedIndex, selectedPlaylist.getPlaylist(), Playlist.PlaylistAddMode.FLATTENED)
+                
+                if(time != null)
+                {
+                    Player.play()
+                    Player.currentlyPlaying.value!!.getCurrentAudioSource().seek(time)
+                    if(paused)
+                        Player.pause()
+                }
+            }
+            val replacePlaylist = Menu("Replace with...", null, replaceContents, replaceFlattened)
+            replacePlaylist.visibleProperty().bind(Bindings.createBooleanBinding(Callable {selectionModel.selectedItems.size == 1 && selectionModel.selectedItem is PlaylistHandle}, selectionModel.selectedItems))
             
             playlistViewTableView.setRowFactory {tableView ->
                 val row = TableRow<MediaHandle>()
@@ -475,7 +516,7 @@ class Controller
                 row
             }
     
-            val contextMenu = ContextMenu(deleteSongs, addToPlaylist)
+            val contextMenu = ContextMenu(deleteSongs, addToPlaylist, replacePlaylist)
             playlistViewTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
             
             @Suppress("UNCHECKED_CAST")
@@ -545,7 +586,7 @@ class Controller
     
             addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {it.getAudioSource(0).loadImage()}}
     
-            playlistViewTableView.items = Player.playlistStack[0].media
+            playlistViewTableView.items = Player.queue.media
         }
         
         fun setPrefWidth()
