@@ -144,7 +144,7 @@ class VLCAudioSource(location: URI): AudioSource(location)
         val currentState = Player.status
         vlcPlayer!!.prepareMedia(media)
         markActive(this)
-        if(currentState == Status.PLAYING || currentState == Status.PAUSED)
+        if((currentState == Status.PLAYING || currentState == Status.PAUSED) && Player.currentlyPlaying.value!!.getCurrentAudioSource() is VLCAudioSource)
         {
             val time = Player.currentlyPlaying.value!!.getCurrentAudioSource().currentTimeProperty.value
             Player.stop(false)

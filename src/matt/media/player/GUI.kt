@@ -54,7 +54,7 @@ class GUI: Application()
         }
         primaryStage.show()
         
-        if(!VLCAudioSource.vlcDetected())
+        if(Config.showVLCMessage && !VLCAudioSource.vlcDetected())
         {
             val bit64 = Native.POINTER_SIZE == 8
             val alertBox = AlertBox("VLC not detected", "Please install VLC. You're computer requires the ${if(bit64) "64" else "32"}-bit version of VLC. While VLC is not required, some media files may not load if it is not installed.", "Ok" to Unit)

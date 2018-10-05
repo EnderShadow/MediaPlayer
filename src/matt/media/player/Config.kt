@@ -16,6 +16,7 @@ object Config
     var vlcDirectory = File("")
     var maxImageSize = 100
     var maxLoadedSources = 10
+    var showVLCMessage = true
     var defaultPlaylistAddMode = Playlist.PlaylistAddMode.REFERENCE
 
     fun load()
@@ -45,6 +46,7 @@ object Config
                         "vlcDirectory" -> vlcDirectory = File(line[1].trim())
                         "maxImageSize" -> maxImageSize = line[1].trim().toInt()
                         "maxLoadedSources" -> maxLoadedSources = line[1].trim().toInt()
+                        "showVLCMessage" -> showVLCMessage = line[1].trim().toBoolean()
                         "defaultPlaylistAddMode" -> defaultPlaylistAddMode = Playlist.PlaylistAddMode.valueOf(line[1].trim().toUpperCase())
                         else -> println("Unknown setting in config: \"$str\"")
                     }
@@ -74,6 +76,7 @@ object Config
         configData.add("vlcDirectory: ${vlcDirectory.path}")
         configData.add("maxImageSize: $maxImageSize")
         configData.add("maxLoadedSources: $maxLoadedSources")
+        configData.add("showVLCMessage: $showVLCMessage")
         configData.add("defaultPlaylistAddMode: ${defaultPlaylistAddMode.name}")
         
         println("Config updated")

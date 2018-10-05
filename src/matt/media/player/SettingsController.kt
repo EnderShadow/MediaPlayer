@@ -1,6 +1,7 @@
 package matt.media.player
 
 import javafx.fxml.FXML
+import javafx.scene.control.CheckBox
 import javafx.scene.control.ChoiceBox
 import javafx.scene.control.TextField
 import javafx.stage.DirectoryChooser
@@ -22,6 +23,7 @@ class SettingsController
     @FXML private lateinit var vlcDirectory: TextField
     @FXML private lateinit var maxImageSize: TextField
     @FXML private lateinit var maxLoadedSources: TextField
+    @FXML private lateinit var vlcMessageCheckbox: CheckBox
     @FXML private lateinit var defaultPlaylistAddMode: ChoiceBox<Playlist.PlaylistAddMode>
     
     fun initialize()
@@ -41,6 +43,7 @@ class SettingsController
         vlcDirectory.text = Config.vlcDirectory.absolutePath
         maxImageSize.text = Config.maxImageSize.toString()
         maxLoadedSources.text = Config.maxLoadedSources.toString()
+        vlcMessageCheckbox.isSelected = Config.showVLCMessage
         defaultPlaylistAddMode.value = Config.defaultPlaylistAddMode
     }
     
@@ -122,6 +125,7 @@ class SettingsController
             Config.vlcDirectory = File(vlcDirectory.text)
             Config.maxImageSize = maxImageSize.text.toInt()
             Config.maxLoadedSources = maxLoadedSources.text.toInt()
+            Config.showVLCMessage = vlcMessageCheckbox.isSelected
             Config.defaultPlaylistAddMode = defaultPlaylistAddMode.value
             Config.updateConfig()
             
