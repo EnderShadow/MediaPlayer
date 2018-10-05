@@ -61,9 +61,9 @@ object Config
                 System.err.println("Unable to read config. Using default config.")
             }
         }
-
-        if(!mediaDirectory.exists())
-            mediaDirectory.mkdirs()
+        
+        mediaDirectory.mkdirs()
+        File(mediaDirectory, "library.txt").createNewFile()
     }
 
     fun updateConfig()

@@ -261,7 +261,7 @@ class Controller
         val chooser = FileChooser()
         chooser.showOpenMultipleDialog(window)?.forEach {
             val uri = it.toURI()
-            if(uri !in MediaLibrary.songURIMap)
+            if(isValidAudioFile(uri) && uri !in MediaLibrary.songURIMap)
                 try
                 {
                     MediaLibrary.addSong(AudioSource.create(uri))
@@ -271,17 +271,17 @@ class Controller
                     println("Failed to load song. Maybe it's not a song?: ${it.absolutePath}")
                 }
         }
+        MediaLibrary.flushLibrary()
     }
     
     fun importMusicFolders()
     {
         val chooser = DirectoryChooser()
         chooser.showDialog(window)?.let {
-            it.walkTopDown().asSequence().filter {it.isFile && it.toURI() !in MediaLibrary.songURIMap}.forEach {
-                val uri = it.toURI()
+            it.walkTopDown().asSequence().filter {it.isFile && isValidAudioFile(it.toURI()) && it.toURI() !in MediaLibrary.songURIMap}.forEach {
                 try
                 {
-                    MediaLibrary.addSong(AudioSource.create(uri))
+                    MediaLibrary.addSong(AudioSource.create(it.toURI()))
                 }
                 catch(_: IllegalArgumentException)
                 {
@@ -289,6 +289,7 @@ class Controller
                 }
             }
         }
+        MediaLibrary.flushLibrary()
     }
     
     fun showAbout()
@@ -593,9 +594,6 @@ class Controller
         {
             prefWidthProperty().bind(window.widthProperty().multiply(0.3))
             prefHeightProperty().bind(window.heightProperty().multiply(0.7))
-            heightProperty().addListener {_ ->
-                println("$width $height")
-            }
         }
     }
 }

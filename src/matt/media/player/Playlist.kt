@@ -59,21 +59,15 @@ class Playlist(name: String): Observable, InvalidationListener
                 // is an already loaded song
                 addSong(MediaLibrary.songURIMap[it]!!)
             }
+            else if(isValidAudioFile(it))
+            {
+                val song = AudioSource.create(it)
+                MediaLibrary.addSong(song)
+                addSong(song)
+            }
             else
             {
-                try
-                {
-                    // try to load it as a song
-                    val song = AudioSource.create(it)
-                    MediaLibrary.addSong(song)
-                    addSong(song)
-                }
-                catch(e: Exception)
-                {
-                    // maybe it's a remote playlist?
-                    // TODO try to remotely load playlist
-                    System.err.println("Tried to load a remote playlist, but that isn't supported atm.\nURI: $it")
-                }
+                // TODO try to load remote playlist
             }
         }
         dirty = false

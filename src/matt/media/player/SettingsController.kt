@@ -8,6 +8,7 @@ import javafx.stage.Window
 import javafx.util.StringConverter
 
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -103,30 +104,21 @@ class SettingsController
         
         if(valid)
         {
-            val newMusicDirectory = File(musicDirectory.text)
-            if(newMusicDirectory.canonicalFile != Config.mediaDirectory.canonicalFile)
+            try
             {
-                val alertBox = AlertBox("Media Move Prompt", "What would you like to do with your old media?", "Nothing" to MediaMoveOptions.DO_NOTHING, "Copy it" to MediaMoveOptions.COPY, "Move it" to MediaMoveOptions.MOVE)
-                alertBox.showAndWait()
-        
-                when(alertBox.returnValue)
+                val newMusicDirectory = File(musicDirectory.text)
+                if(newMusicDirectory.canonicalFile != Config.mediaDirectory.canonicalFile)
                 {
-                    null -> valid = false
-                    MediaMoveOptions.COPY -> Files.copy(Config.mediaDirectory.toPath(), newMusicDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
-                    MediaMoveOptions.MOVE ->
-                    {
-                        Files.copy(Config.mediaDirectory.toPath(), newMusicDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
-                        val oldDir = Config.mediaDirectory
-                        Runtime.getRuntime().addShutdownHook(Thread {oldDir.deleteRecursively()})
-                    }
-                    MediaMoveOptions.DO_NOTHING -> {}
+                    Files.move(Config.mediaDirectory.toPath(), newMusicDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
                 }
+                Config.mediaDirectory = newMusicDirectory
             }
-        }
-        
-        if(valid)
-        {
-            Config.mediaDirectory = File(musicDirectory.text)
+            catch(ioe: IOException)
+            {
+                System.err.println("Failed to move media directory")
+                ioe.printStackTrace()
+            }
+            
             Config.vlcDirectory = File(vlcDirectory.text)
             Config.maxImageSize = maxImageSize.text.toInt()
             Config.maxLoadedSources = maxLoadedSources.text.toInt()

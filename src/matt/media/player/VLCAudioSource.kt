@@ -141,8 +141,18 @@ class VLCAudioSource(location: URI): AudioSource(location)
     
     override fun init()
     {
+        val currentState = Player.status
         vlcPlayer!!.prepareMedia(media)
         markActive(this)
+        if(currentState == Status.PLAYING || currentState == Status.PAUSED)
+        {
+            val time = Player.currentlyPlaying.value!!.getCurrentAudioSource().currentTimeProperty.value
+            Player.stop(false)
+            Player.play()
+            Player.currentlyPlaying.value!!.getCurrentAudioSource().seek(time)
+            if(currentState == Status.PAUSED)
+                Player.pause()
+        }
     }
     
     override fun dispose()

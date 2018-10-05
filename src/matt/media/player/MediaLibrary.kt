@@ -13,6 +13,7 @@ import java.util.*
 object MediaLibrary
 {
     val loadingProperty = SimpleBooleanProperty(false)
+    private var libraryDirty = false
     
     val songs: ObservableList<AudioSource> = FXCollections.observableArrayList<AudioSource>()
     val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap<URI, AudioSource>()
@@ -20,34 +21,38 @@ object MediaLibrary
     val playlists: ObservableList<Playlist> = FXCollections.observableArrayList<Playlist>()
     val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList<PlaylistTabController.PlaylistIcon>()
     
+    init
+    {
+        Runtime.getRuntime().addShutdownHook(Thread {flushLibrary()})
+    }
+    
     fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}
     
     fun loadSongs()
     {
-        val queue = LinkedList(listOf(Config.mediaDirectory))
-        while(queue.isNotEmpty())
-        {
-            val curFile = queue.remove()
-            if(curFile.name == "Playlists")
-                continue
-            if(curFile.isDirectory)
-                queue.addAll(curFile.listFiles())
-            else
+        File(Config.mediaDirectory, "library.txt").forEachLine {
+            if(it.isNotBlank())
+            {
                 try
                 {
-                    addSong(AudioSource.create(curFile.toURI()))
+                    val uri = URI(it)
+                    if(isValidAudioFile(uri))
+                        addSong(AudioSource.create(uri))
                 }
                 catch(_: IllegalArgumentException)
                 {
-                    println("Failed to load song. Maybe it's not a song?: ${curFile.absolutePath}")
+                    println("Failed to load song. Maybe it's not a song?: $it")
                 }
+            }
         }
+        libraryDirty = false
     }
     
     fun addSong(song: AudioSource)
     {
         songs.add(song)
         songURIMap[song.location] = song
+        libraryDirty = true
     }
     
     fun loadPlaylists()
@@ -91,18 +96,22 @@ object MediaLibrary
             Player.queue.removeSong(audioSource)
         songs.remove(audioSource)
         songURIMap.remove(audioSource.location)
-        if(isFile(audioSource.location))
+        if(!DEBUG)
         {
-            if(!DEBUG)
-            {
-                val file = File(audioSource.location)
-                if(!file.delete())
-                    file.deleteOnExit()
-            }
-            else
-            {
-                println("$audioSource would have been deleted if debug mode was off")
-            }
+            libraryDirty = true
+        }
+        else
+        {
+            println("$audioSource would have been deleted if debug mode was off")
+        }
+    }
+    
+    fun flushLibrary()
+    {
+        if(libraryDirty)
+        {
+            File(Config.mediaDirectory, "library.txt").writeText(songs.joinToString("\n", postfix = "\n") {it.location.toString()})
+            libraryDirty = false
         }
     }
 }

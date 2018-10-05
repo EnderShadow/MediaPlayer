@@ -37,7 +37,7 @@ abstract class AudioSource(val location: URI)
                 oldSource.dispose()
             }
         }
-    
+        
         /**
          * Creates an instance of AudioSource based on the provided uri
          */
