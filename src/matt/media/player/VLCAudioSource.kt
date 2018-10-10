@@ -19,7 +19,7 @@ class VLCAudioSource(location: URI): AudioSource(location)
 {
     companion object
     {
-        fun isSupported(uri: URI) = vlcPlayer != null
+        fun isSupported(uri: URI) = vlcDetected()
         fun vlcDetected() = vlcPlayer != null
         
         private val vlcPlayer = try

@@ -1,10 +1,10 @@
 package matt.media.player
 
+import com.sun.javafx.scene.control.skin.TableViewSkin
+import com.sun.javafx.scene.control.skin.VirtualFlow
 import javafx.beans.property.StringProperty
 import javafx.embed.swing.SwingFXUtils
 import javafx.scene.control.TableView
-import javafx.scene.control.skin.TableViewSkin
-import javafx.scene.control.skin.VirtualFlow
 import javafx.scene.image.Image
 import javafx.scene.input.DataFormat
 import javafx.scene.paint.Color

@@ -40,7 +40,7 @@ class SettingsController
     {
         directoryChooser.initialDirectory = Config.mediaDirectory
         musicDirectory.text = Config.mediaDirectory.absolutePath
-        vlcDirectory.text = Config.vlcDirectory.absolutePath
+        vlcDirectory.text = Config.vlcDirectory.path
         maxImageSize.text = Config.maxImageSize.toString()
         maxLoadedSources.text = Config.maxLoadedSources.toString()
         vlcMessageCheckbox.isSelected = Config.showVLCMessage

@@ -1,9 +1,9 @@
 # MediaPlayer
 A Media Player I'm creating for fun and as a potential business venture
 
-Requires Java 9+ with the following JVM arguments  
-`--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED --add-exports=java.base/jdk.internal.ref=ALL-UNNAMED`  
-This is due to ControlsFX and JAudioTagger requiring internal APIs. This will be fixed as soon as the libraries are fixed.
+Requires Java 8 with the following JVM argument  
+`-DVLCJ_INITX=no`  
+This is due to a bug in linux (or at least Ubuntu 18.04.1) where the JVM crashes when using vlcj and other native libraries when opening a file/folder chooser.
 
 Currently working features  
 -Music can be played  
