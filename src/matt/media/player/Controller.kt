@@ -59,6 +59,7 @@ class Controller
     @FXML private lateinit var shuffleIcon2: Polygon
     @FXML private lateinit var shuffleIcon3: Line
     @FXML private lateinit var shuffleIcon4: Polygon
+    @FXML private lateinit var currentTime: Text
     @FXML private lateinit var volumeSlider: Slider
     @FXML private lateinit var showQueueButton: Button
     
@@ -76,11 +77,19 @@ class Controller
         
         val timeChangeListener = InvalidationListener {
             if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
+            {
                 playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
                     it.currentTimeProperty.value.toMillis() / it.durationProperty.value.toMillis()
                 } ?: 0.0
+                currentTime.text = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
+                    "${formatDuration(it.currentTimeProperty.value)} / ${formatDuration(it.durationProperty.value)}"
+                } ?: "0:00:00 / 0:00:00"
+            }
             else
+            {
                 playbackLocationSlider.valueProperty().value = 0.0
+                currentTime.text = "0:00:00 / 0:00:00"
+            }
         }
         
         Player.currentlyPlaying.addListener {_, oldValue, newValue ->
@@ -95,6 +104,7 @@ class Controller
         playbackLocationSlider.setOnMouseReleased {
             Player.play()
             Player.currentlyPlaying.value!!.getCurrentAudioSource().run {seek(durationProperty.value.multiply(playbackLocationSlider.value))}
+            playButtonIcon.requestFocus()
         }
         playbackLocationSlider.valueChangingProperty().addListener(InvalidationListener {
             if(!playbackLocationSlider.isValueChanging)
@@ -230,8 +240,7 @@ class Controller
         VLCAudioSource.shutdown()
         queuePopOver.hide(Duration.ZERO)
         window.hide()
-        val playlistDir = File(Config.mediaDirectory, "Playlists")
-        MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(playlistDir)}
+        MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(Config.playlistDirectory)}
     }
     
     fun requestCreatePlaylist(): Playlist?

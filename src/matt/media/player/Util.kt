@@ -12,6 +12,7 @@ import javafx.util.Duration
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
+import java.lang.StringBuilder
 import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.util.ArrayList
@@ -23,6 +24,8 @@ val SERIALIZED_MIME_TYPE = DataFormat("application/x-java-serialized-object")
 private val imageCache = mutableListOf<Image>()
 
 val defaultImage by lazy {Image(MethodHandles.lookup().lookupClass().classLoader.getResourceAsStream("default.jpg"))}
+
+val hexDigits = "0123456789ABCDEF".toCharArray()
 
 val validAudioExtensions = listOf(".asf", ".au", ".ogm", ".ogg", ".mka", ".ts", ".mpg", ".mp3", ".mp2", ".nsc", ".nut", ".a52", ".dts",
         ".aac", ".flac", ".dv", ".vid", ".tta", ".tac", ".ty", ".wav", ".dts", ".xa", ".aif", ".aiff", ".m4a")
@@ -42,6 +45,14 @@ fun isValidFilename(filename: String): Boolean
     {
         false
     }
+}
+
+fun hexString(num: Int): String
+{
+    val stringBuilder = StringBuilder(8)
+    for(i in 28 downTo 0 step 4)
+        stringBuilder.append(hexDigits[(num shr i) and 0xF])
+    return stringBuilder.toString()
 }
 
 fun formatDuration(duration: Duration?): String

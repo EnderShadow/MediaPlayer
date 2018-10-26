@@ -195,7 +195,7 @@
                         </Button>
                      </children>
                   </HBox>
-                  <HBox alignment="CENTER" layoutY="-1.0" spacing="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                  <HBox alignment="CENTER" spacing="5.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                      <padding>
                         <Insets right="15.0" />
                      </padding>
@@ -227,6 +227,11 @@
                         </ImageView>
                      </children>
                   </HBox>
+                  <VBox alignment="TOP_CENTER" layoutX="716.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="0.0">
+                     <children>
+                        <Text fx:id="currentTime" strokeType="OUTSIDE" strokeWidth="0.0" text="0:00:00 / 0:00:00" />
+                     </children>
+                  </VBox>
                </children>
             </AnchorPane>
         </items>

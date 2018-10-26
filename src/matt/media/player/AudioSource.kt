@@ -1,14 +1,15 @@
 package matt.media.player
 
+import javafx.beans.InvalidationListener
 import javafx.beans.property.*
+import javafx.beans.value.ChangeListener
 import javafx.scene.image.Image
 import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
-import java.io.ByteArrayInputStream
-import java.io.File
+import java.io.*
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
@@ -93,17 +94,106 @@ abstract class AudioSource(val location: URI)
     
     init
     {
-        if(isFile(location)) try
+        val metadataFile = File(Config.mediaDirectory, "${hexString(location.hashCode())}.metadata")
+    
+        if(metadataFile.exists()) try
+        {
+            DataInputStream(metadataFile.inputStream().buffered()).use {
+                if(location.toString() != it.readUTF())
+                    throw IOException("Hash collision for URI detected")
+                titleProperty.value = it.readUTF()
+                artistProperty.value = it.readUTF()
+                albumProperty.value = it.readUTF()
+                genreProperty.value = it.readUTF()
+                albumArtistProperty.value = it.readUTF()
+                trackCountProperty.value = it.readInt()
+                trackNumberProperty.value = it.readInt()
+                yearProperty.value = it.readUTF()
+                durationProperty.value = Duration.millis(it.readDouble())
+            }
+            loaded = true
+            loadImage = {
+                try
+                {
+                    val artworkData = AudioFileIO.read(File(location)).tagOrCreateAndSetDefault.firstArtwork?.binaryData
+                    if(artworkData != null)
+                    {
+                        val image = Image(ByteArrayInputStream(artworkData))
+                        if(image.exception == null)
+                        {
+                            imageProperty.value = squareAndCache(image)
+                        }
+                        else
+                        {
+                            init()
+                        }
+                    }
+                }
+                catch(e: Exception)
+                {
+                    init()
+                }
+                loadImage = {}
+            }
+        }
+        catch(ioe: IOException)
+        {
+            System.err.println("Failed to read song metadata from file")
+        }
+    
+        val metadataChangeListener = ChangeListener<Any> {_, old, new ->
+            if(old != new && new != null) try
+            {
+                // Prevents write attempts from overlapping
+                synchronized(location) {
+                    DataOutputStream(metadataFile.outputStream().buffered()).use {
+                        it.writeUTF(location.toString())
+                        it.writeUTF(titleProperty.value)
+                        it.writeUTF(artistProperty.value)
+                        it.writeUTF(albumProperty.value)
+                        it.writeUTF(genreProperty.value)
+                        it.writeUTF(albumArtistProperty.value)
+                        it.writeInt(trackCountProperty.value)
+                        it.writeInt(trackNumberProperty.value)
+                        it.writeUTF(yearProperty.value)
+                        it.writeDouble(durationProperty.value.toMillis())
+                    }
+                }
+            }
+            catch(ioe: IOException)
+            {
+                System.err.println("Failed to write song metadata to file")
+            }
+        }
+        
+        titleProperty.addListener(metadataChangeListener)
+        artistProperty.addListener(metadataChangeListener)
+        albumProperty.addListener(metadataChangeListener)
+        genreProperty.addListener(metadataChangeListener)
+        albumArtistProperty.addListener(metadataChangeListener)
+        trackCountProperty.addListener(metadataChangeListener)
+        trackNumberProperty.addListener(metadataChangeListener)
+        yearProperty.addListener(metadataChangeListener)
+        durationProperty.addListener(metadataChangeListener)
+        
+        if(!loaded && isFile(location)) try
         {
             val audioFile = AudioFileIO.read(File(location))
             
             val header = audioFile.audioHeader
             durationProperty.value = Duration.seconds(header.preciseTrackLength)
-    
-            val tag = audioFile.tag
+            val tag = audioFile.tagOrCreateAndSetDefault
             if(tag != null)
             {
-                tag.getFirst(FieldKey.TITLE).let {if(it.isNotBlank()) titleProperty.value = it}
+                tag.getFirst(FieldKey.TITLE).let {
+                    if(it.isNotBlank())
+                        titleProperty.value = it
+                    else
+                    {
+                        tag.setField(FieldKey.TITLE, titleProperty.value)
+                        audioFile.commit()
+                    }
+                }
                 tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
                 tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
                 tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
@@ -146,8 +236,6 @@ abstract class AudioSource(val location: URI)
     abstract fun seek(position: Duration)
     
     override fun toString() = location.toString()
-    override fun equals(other: Any?): Boolean
-    {
-        return other is AudioSource && other.location == location
-    }
+    override fun equals(other: Any?) = other is AudioSource && other.location == location
+    override fun hashCode() = location.hashCode()
 }

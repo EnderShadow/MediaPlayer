@@ -82,14 +82,14 @@ class VLCAudioSource(location: URI): AudioSource(location)
                     val audioSource = mediaPlayer.toAudioSource()
                     audioSource.run {
                         durationProperty.value = Duration.millis(meta.length.toDouble())
-                        artistProperty.value = meta.artist
-                        albumProperty.value = meta.album
-                        genreProperty.value = meta.genre
-                        albumArtistProperty.value = meta.albumArtist
+                        artistProperty.value = meta.artist ?: ""
+                        albumProperty.value = meta.album ?: ""
+                        genreProperty.value = meta.genre ?: ""
+                        albumArtistProperty.value = meta.albumArtist ?: ""
                         setLoadedImage(meta.artwork)
-                        trackCountProperty.value = meta.trackTotal.toInt()
-                        trackNumberProperty.value = meta.trackNumber.toInt()
-                        yearProperty.value = meta.date
+                        trackCountProperty.value = meta.trackTotal?.toInt() ?: 0
+                        trackNumberProperty.value = meta.trackNumber?.toInt() ?: 0
+                        yearProperty.value = meta.date ?: ""
                     }
                 }
     

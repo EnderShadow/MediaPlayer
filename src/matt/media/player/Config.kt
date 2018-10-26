@@ -9,10 +9,16 @@ import java.util.ArrayList
 
 object Config
 {
-    private val configFile = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "config.cfg")
+    private val configFile = File(System.getProperty("user.home") + "/.config/Media Player/config.cfg")
     private const val VERSION = "1.0.0"
     
-    var mediaDirectory = File(System.getProperty("user.home") + File.separator + "Media Player" + File.separator + "Media")
+    var dataDirectory = File(System.getProperty("user.home") + "/Media Player")
+    val mediaDirectory
+        get() = File(dataDirectory, "Media")
+    val playlistDirectory
+        get() = File(dataDirectory, "Playlists")
+    val libraryFile
+        get() = File(dataDirectory, "library.txt")
     var vlcDirectory = File("")
     var maxImageSize = 100
     var maxLoadedSources = 10
@@ -42,7 +48,7 @@ object Config
                     val line = str.split(':', limit=2)
                     when(line[0].trim())
                     {
-                        "mediaDirectory" -> mediaDirectory = File(line[1].trim())
+                        "dataDirectory" -> dataDirectory = File(line[1].trim())
                         "vlcDirectory" -> vlcDirectory = File(line[1].trim())
                         "maxImageSize" -> maxImageSize = line[1].trim().toInt()
                         "maxLoadedSources" -> maxLoadedSources = line[1].trim().toInt()
@@ -65,14 +71,15 @@ object Config
         }
         
         mediaDirectory.mkdirs()
-        File(mediaDirectory, "library.txt").createNewFile()
+        playlistDirectory.mkdirs()
+        libraryFile.createNewFile()
     }
 
     fun updateConfig()
     {
         val configData = ArrayList<String>()
         configData.add("version: $VERSION")
-        configData.add("mediaDirectory: ${mediaDirectory.path}")
+        configData.add("dataDirectory: ${dataDirectory.path}")
         configData.add("vlcDirectory: ${vlcDirectory.path}")
         configData.add("maxImageSize: $maxImageSize")
         configData.add("maxLoadedSources: $maxLoadedSources")

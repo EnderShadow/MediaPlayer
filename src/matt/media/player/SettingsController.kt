@@ -19,7 +19,7 @@ class SettingsController
     
     private val directoryChooser = DirectoryChooser()
     
-    @FXML private lateinit var musicDirectory: TextField
+    @FXML private lateinit var dataDirectory: TextField
     @FXML private lateinit var vlcDirectory: TextField
     @FXML private lateinit var maxImageSize: TextField
     @FXML private lateinit var maxLoadedSources: TextField
@@ -38,8 +38,8 @@ class SettingsController
     
     private fun reset()
     {
-        directoryChooser.initialDirectory = Config.mediaDirectory
-        musicDirectory.text = Config.mediaDirectory.absolutePath
+        directoryChooser.initialDirectory = Config.dataDirectory
+        dataDirectory.text = Config.dataDirectory.absolutePath
         vlcDirectory.text = Config.vlcDirectory.path
         maxImageSize.text = Config.maxImageSize.toString()
         maxLoadedSources.text = Config.maxLoadedSources.toString()
@@ -49,7 +49,7 @@ class SettingsController
     
     fun changeMediaDir()
     {
-        directoryChooser.showDialog(window)?.let {musicDirectory.text = it.absolutePath}
+        directoryChooser.showDialog(window)?.let {dataDirectory.text = it.absolutePath}
     }
     
     fun changeVLCDir()
@@ -61,15 +61,15 @@ class SettingsController
     {
         var valid = true
         
-        if(!isValidFilename(musicDirectory.text))
+        if(!isValidFilename(dataDirectory.text))
         {
             valid = false
-            if("error" !in musicDirectory.styleClass)
-                musicDirectory.styleClass.add("error")
+            if("error" !in dataDirectory.styleClass)
+                dataDirectory.styleClass.add("error")
         }
         else
         {
-            musicDirectory.styleClass.remove("error")
+            dataDirectory.styleClass.remove("error")
         }
     
         if(!isValidFilename(vlcDirectory.text))
@@ -109,12 +109,12 @@ class SettingsController
         {
             try
             {
-                val newMusicDirectory = File(musicDirectory.text)
-                if(newMusicDirectory.canonicalFile != Config.mediaDirectory.canonicalFile)
+                val newDataDirectory = File(dataDirectory.text)
+                if(newDataDirectory.canonicalFile != Config.dataDirectory.canonicalFile)
                 {
-                    Files.move(Config.mediaDirectory.toPath(), newMusicDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
+                    Files.move(Config.dataDirectory.toPath(), newDataDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
                 }
-                Config.mediaDirectory = newMusicDirectory
+                Config.dataDirectory = newDataDirectory
             }
             catch(ioe: IOException)
             {

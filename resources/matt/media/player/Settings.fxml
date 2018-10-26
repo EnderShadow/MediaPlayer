@@ -16,8 +16,8 @@
          <children>
             <HBox spacing="5.0">
                <children>
-                  <Label text="Media Directory" />
-                  <TextField fx:id="musicDirectory" prefHeight="25.0" prefWidth="228.0" />
+                  <Label text="Data Directory" />
+                  <TextField fx:id="dataDirectory" prefHeight="25.0" prefWidth="228.0" />
                   <Button mnemonicParsing="false" onAction="#changeMediaDir" text="Change" />
                </children>
             </HBox>

@@ -30,7 +30,7 @@ object MediaLibrary
     
     fun loadSongs()
     {
-        File(Config.mediaDirectory, "library.txt").forEachLine {
+        Config.libraryFile.forEachLine {
             if(it.isNotBlank())
             {
                 try
@@ -57,11 +57,7 @@ object MediaLibrary
     
     fun loadPlaylists()
     {
-        val playlistDir = File(Config.mediaDirectory, "Playlists")
-        if(!playlistDir.exists())
-            playlistDir.mkdirs()
-        
-        for(file in playlistDir.listFiles().filter {it.extension == Playlist.EXTENSION})
+        for(file in Config.playlistDirectory.listFiles().filter {it.extension == Playlist.EXTENSION})
             if(!isPlaylistLoaded(file.nameWithoutExtension))
                 playlists.add(Playlist(file))
     }
@@ -81,7 +77,7 @@ object MediaLibrary
         for(pl in playlists)
             while(pl.containsPlaylist(playlist))
                 pl.removePlaylist(playlist)
-        File(File(Config.mediaDirectory, "Playlists"), "${playlist.name}.${Playlist.EXTENSION}").delete()
+        File(Config.playlistDirectory, "${playlist.name}.${Playlist.EXTENSION}").delete()
     }
     
     fun removeSong(audioSource: AudioSource)
@@ -110,7 +106,7 @@ object MediaLibrary
     {
         if(libraryDirty)
         {
-            File(Config.mediaDirectory, "library.txt").writeText(songs.joinToString("\n", postfix = "\n") {it.location.toString()})
+            Config.libraryFile.writeText(songs.joinToString("\n", postfix = "\n") {it.location.toString()})
             libraryDirty = false
         }
     }
