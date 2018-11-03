@@ -44,7 +44,7 @@ object MediaLibrary
             while(true)
             {
                 Platform.runLater {try {playlistIcons.forEach {it.invalidated(null)}} catch(cme: ConcurrentModificationException) {}}
-                try {Thread.sleep(100)} catch(ie: InterruptedException) {}
+                try {Thread.sleep(1000)} catch(ie: InterruptedException) {}
             }
         }
     }
