@@ -1,5 +1,6 @@
 package matt.media.player
 
+import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
@@ -10,6 +11,8 @@ import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
+import kotlin.ConcurrentModificationException
+import kotlin.concurrent.thread
 import kotlin.math.max
 
 object MediaLibrary
@@ -36,6 +39,14 @@ object MediaLibrary
             if(recentPlaylists.size > 5)
                 recentPlaylists.removeAt(recentPlaylists.lastIndex)
         })
+        
+        thread(start = true, isDaemon = true) {
+            while(true)
+            {
+                Platform.runLater {try {playlistIcons.forEach {it.invalidated(null)}} catch(cme: ConcurrentModificationException) {}}
+                try {Thread.sleep(100)} catch(ie: InterruptedException) {}
+            }
+        }
     }
     
     fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}

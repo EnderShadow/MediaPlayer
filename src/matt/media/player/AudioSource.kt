@@ -1,5 +1,6 @@
 package matt.media.player
 
+import javafx.application.Platform
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.scene.image.Image
@@ -12,12 +13,54 @@ import java.io.*
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.concurrent.thread
 
 abstract class AudioSource(val location: URI)
 {
     companion object
     {
         private val activeSources = LinkedList<AudioSource>()
+        private val imageLoadQueue = ConcurrentLinkedQueue<Pair<AudioSource, SimpleObjectProperty<Image>>>()
+        
+        init
+        {
+            thread(start = true, isDaemon = true, name = "Image Loading Thread") {
+                while(true)
+                {
+                    val imageToLoad = imageLoadQueue.poll()
+                    if(imageToLoad != null)
+                    {
+                        val (audioSource, imageProperty) = imageToLoad
+                        try
+                        {
+                            val artworkData = AudioFileIO.read(File(audioSource.location)).tagOrCreateAndSetDefault.firstArtwork?.binaryData
+                            if(artworkData != null)
+                            {
+                                val image = Image(ByteArrayInputStream(artworkData))
+                                if(image.exception == null)
+                                {
+                                    val squaredImage = squareAndCache(image)
+                                    Platform.runLater {imageProperty.value = squaredImage}
+                                }
+                                else
+                                {
+                                    Platform.runLater(audioSource::init)
+                                }
+                            }
+                        }
+                        catch(e: Exception)
+                        {
+                            Platform.runLater(audioSource::init)
+                        }
+                    }
+                    else
+                    {
+                        Thread.yield()
+                    }
+                }
+            }
+        }
         
         // must only be called when synchronized on AudioSource::class
         fun markActive(audioSource: AudioSource)
@@ -67,6 +110,11 @@ abstract class AudioSource(val location: URI)
             }
             throw IllegalArgumentException("Unsupported audio format: $uri")
         }
+        
+        private fun loadImage(audioSource: AudioSource, imageProperty: SimpleObjectProperty<Image>)
+        {
+            imageLoadQueue.add(Pair(audioSource, imageProperty))
+        }
     }
     
     val titleProperty = SimpleStringProperty(if(isFile(location)) File(location).nameWithoutExtension else "Unknown")
@@ -112,29 +160,6 @@ abstract class AudioSource(val location: URI)
                 durationProperty.value = Duration.millis(it.readDouble())
             }
             loaded = true
-            loadImage = {
-                try
-                {
-                    val artworkData = AudioFileIO.read(File(location)).tagOrCreateAndSetDefault.firstArtwork?.binaryData
-                    if(artworkData != null)
-                    {
-                        val image = Image(ByteArrayInputStream(artworkData))
-                        if(image.exception == null)
-                        {
-                            imageProperty.value = squareAndCache(image)
-                        }
-                        else
-                        {
-                            init()
-                        }
-                    }
-                }
-                catch(e: Exception)
-                {
-                    init()
-                }
-                loadImage = {}
-            }
         }
         catch(ioe: IOException)
         {
@@ -202,28 +227,18 @@ abstract class AudioSource(val location: URI)
                 tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
                 tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
                 
-                loadImage = {
-                    val artworkData = tag.firstArtwork?.binaryData
-                    if(artworkData != null)
-                    {
-                        val image = Image(ByteArrayInputStream(artworkData))
-                        if(image.exception == null)
-                        {
-                            imageProperty.value = squareAndCache(image)
-                        }
-                        else
-                        {
-                            init()
-                        }
-                    }
-                    loadImage = {}
-                }
                 loaded = true
             }
         }
         catch(e: Throwable)
         {
             System.err.println("Failed to read metadata from audio source. Fully loading audio source instead.")
+        }
+    
+    
+        loadImage = {
+            loadImage = {}
+            AudioSource.loadImage(this, imageProperty)
         }
     }
     

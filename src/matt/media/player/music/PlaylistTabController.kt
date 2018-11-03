@@ -261,7 +261,7 @@ class PlaylistTabController: TabController()
     
         private fun setupDisplay()
         {
-            playlist.media.take(4).forEach {it.getAudioSource(0).loadImage()}
+            playlist.media.forEach {it.getAudioSource(0).loadImage()}
             
             val image1 = ImageView()
             image1.imageProperty().bind(getImage(0))
