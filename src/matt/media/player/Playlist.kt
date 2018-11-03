@@ -308,9 +308,9 @@ class Playlist(name: String): Observable, InvalidationListener
         listeners.remove(listener)
     }
     
-    override fun invalidated(observable: Observable)
+    override fun invalidated(observable: Observable?)
     {
-        listeners.forEach {it.invalidated(this)}
+        retry {listeners.forEach {it.invalidated(this)}}
     }
 }
 

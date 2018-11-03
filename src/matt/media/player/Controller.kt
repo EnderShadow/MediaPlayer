@@ -27,7 +27,6 @@ import javafx.util.Callback
 import javafx.util.Duration
 import matt.media.player.music.NewPlaylistController
 import org.controlsfx.control.PopOver
-import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
 
@@ -146,6 +145,7 @@ class Controller
         
         tabPane.selectionModel.selectedItemProperty().addListener {_, _, newValue ->
             (newValue?.content?.userData as TabController?)?.onSelected()
+            filterField.text = ""
         }
         
         registerTab("music/MusicTab.fxml", "Music")
@@ -240,7 +240,6 @@ class Controller
         VLCAudioSource.shutdown()
         queuePopOver.hide(Duration.ZERO)
         window.hide()
-        MediaLibrary.playlists.filter {it.dirty}.forEach {it.save(Config.playlistDirectory)}
     }
     
     fun requestCreatePlaylist(): Playlist?
@@ -332,7 +331,7 @@ class Controller
             val imageColumn = flatViewTableView.columns[0] as TableColumn<SongHandle, ImageView>
             @Suppress("UNCHECKED_CAST")
             val titleColumn = flatViewTableView.columns[1] as TableColumn<SongHandle, String>
-            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(113))
+            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(135))
             @Suppress("UNCHECKED_CAST")
             val durationColumn = flatViewTableView.columns[2] as TableColumn<SongHandle, String>
     
@@ -399,8 +398,22 @@ class Controller
                     }
             }
     
-            val addToPlaylist = Menu("Add to playlist", null, newPlaylist)
+            val addToPlaylist = Menu("Add to playlist", null, newPlaylist, SeparatorMenuItem())
             addToPlaylist.setOnShowing {_ ->
+                if(MediaLibrary.recentPlaylists.isNotEmpty())
+                {
+                    MediaLibrary.recentPlaylists.forEach {playlist ->
+                        val playlistMenu = MenuItem(playlist.name)
+                        playlistMenu.setOnAction {playlistViewTableView.selectionModel.selectedItems.forEach {mh ->
+                            if(mh is SongHandle)
+                                playlist.addSong(mh.getCurrentAudioSource())
+                            else
+                                playlist.addPlaylist(mh.getPlaylist())
+                        }}
+                        addToPlaylist.items.add(playlistMenu)
+                    }
+                    addToPlaylist.items.add(SeparatorMenuItem())
+                }
                 MediaLibrary.playlists.forEach {playlist ->
                     val playlistMenu = MenuItem(playlist.name)
                     playlistMenu.setOnAction {playlistViewTableView.selectionModel.selectedItems.forEach {mh ->
@@ -412,7 +425,7 @@ class Controller
                     addToPlaylist.items.add(playlistMenu)
                 }
             }
-            addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+            addToPlaylist.setOnHidden {addToPlaylist.items.subList(2, addToPlaylist.items.size).clear()}
             
             val selectionModel = playlistViewTableView.selectionModel
             
@@ -533,7 +546,7 @@ class Controller
             val imageColumn = playlistViewTableView.columns[0] as TableColumn<MediaHandle, ImageView>
             @Suppress("UNCHECKED_CAST")
             val titleColumn = playlistViewTableView.columns[1] as TableColumn<MediaHandle, String>
-            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(113))
+            titleColumn.prefWidthProperty().bind(prefWidthProperty().subtract(135))
             @Suppress("UNCHECKED_CAST")
             val durationColumn = playlistViewTableView.columns[2] as TableColumn<MediaHandle, String>
     

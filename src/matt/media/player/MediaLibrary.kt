@@ -1,5 +1,6 @@
 package matt.media.player
 
+import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -9,21 +10,32 @@ import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.util.*
+import kotlin.math.max
 
 object MediaLibrary
 {
     val loadingProperty = SimpleBooleanProperty(false)
     private var libraryDirty = false
     
-    val songs: ObservableList<AudioSource> = FXCollections.observableArrayList<AudioSource>()
-    val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap<URI, AudioSource>()
+    val songs: ObservableList<AudioSource> = FXCollections.observableArrayList()
+    val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap()
     
-    val playlists: ObservableList<Playlist> = FXCollections.observableArrayList<Playlist>()
-    val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList<PlaylistTabController.PlaylistIcon>()
+    val playlists: ObservableList<Playlist> = FXCollections.observableArrayList()
+    val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList()
+    
+    val recentPlaylists: ObservableList<Playlist> = FXCollections.observableList(LinkedList())
     
     init
     {
-        Runtime.getRuntime().addShutdownHook(Thread {flushLibrary()})
+        Runtime.getRuntime().addShutdownHook(Thread {
+            flushLibrary()
+            playlists.asSequence().filter {it.dirty}.forEach {it.save(Config.playlistDirectory)}
+        })
+        
+        recentPlaylists.addListener(InvalidationListener {_ ->
+            if(recentPlaylists.size > 5)
+                recentPlaylists.removeAt(recentPlaylists.lastIndex)
+        })
     }
     
     fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}
@@ -59,12 +71,22 @@ object MediaLibrary
     {
         for(file in Config.playlistDirectory.listFiles().filter {it.extension == Playlist.EXTENSION})
             if(!isPlaylistLoaded(file.nameWithoutExtension))
-                playlists.add(Playlist(file))
+                addPlaylist(Playlist(file))
+        
+        recentPlaylists.clear()
+        val lastFiveStartIndex = max(playlists.size - 5, 0)
+        recentPlaylists.addAll(playlists.subList(lastFiveStartIndex, playlists.size).reversed())
     }
     
     fun addPlaylist(playlist: Playlist)
     {
-        playlists.add(playlist)
+        val index = Collections.binarySearch(playlists, playlist) {p1, p2 -> p1.name.compareTo(p2.name)}
+        playlists.add(-(index + 1), playlist)
+        
+        playlist.addListener {
+            recentPlaylists.remove(playlist)
+            recentPlaylists.add(0, playlist)
+        }
     }
     
     fun isPlaylistLoaded(name: String) = playlists.any {it.name.equals(name, true)}
@@ -92,6 +114,7 @@ object MediaLibrary
             Player.queue.removeSong(audioSource)
         songs.remove(audioSource)
         songURIMap.remove(audioSource.location)
+        audioSource.deleteMetadata()
         if(!DEBUG)
         {
             libraryDirty = true

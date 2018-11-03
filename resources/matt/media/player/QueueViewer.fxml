@@ -17,8 +17,8 @@
                         <TableView fx:id="playlistViewTableView" focusTraversable="false" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                           <columns>
                             <TableColumn editable="false" prefWidth="50.0" sortable="false" text="Image" />
-                            <TableColumn prefWidth="198.0" sortable="false" text="Title" />
-                              <TableColumn editable="false" prefWidth="63.0" sortable="false" text="Duration" />
+                            <TableColumn prefWidth="191.0" sortable="false" text="Title" />
+                              <TableColumn editable="false" prefWidth="67.0" sortable="false" text="Duration" />
                           </columns>
                         </TableView>
                      </children>
@@ -32,8 +32,8 @@
                         <TableView fx:id="flatViewTableView" focusTraversable="false" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                            <columns>
                               <TableColumn editable="false" prefWidth="50.0" sortable="false" text="Image" />
-                              <TableColumn prefWidth="198.0" sortable="false" text="Title" />
-                              <TableColumn editable="false" prefWidth="63.0" sortable="false" text="Duration" />
+                              <TableColumn prefWidth="191.0" sortable="false" text="Title" />
+                              <TableColumn editable="false" prefWidth="67.0" sortable="false" text="Duration" />
                            </columns>
                         </TableView>
                      </children>

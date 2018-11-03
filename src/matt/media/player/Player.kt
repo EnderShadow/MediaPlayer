@@ -104,14 +104,24 @@ object Player
     fun enqueue(mediaHandle: MediaHandle)
     {
         if(mediaHandle is SongHandle)
+        {
             queue.addSong(mediaHandle.getCurrentAudioSource())
+        }
         else
-            queue.addPlaylist(mediaHandle.getPlaylist())
+        {
+            val playlist = mediaHandle.getPlaylist()
+            queue.addPlaylist(playlist)
+            playlist.invalidated(null)
+        }
     }
     
     fun enqueue(audioSource: AudioSource) = queue.addSong(audioSource)
     
-    fun enqueue(playlist: Playlist) = queue.addPlaylist(playlist)
+    fun enqueue(playlist: Playlist)
+    {
+        queue.addPlaylist(playlist)
+        playlist.invalidated(null)
+    }
     
     fun clearQueue()
     {

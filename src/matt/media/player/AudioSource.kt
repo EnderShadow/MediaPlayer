@@ -1,6 +1,5 @@
 package matt.media.player
 
-import javafx.beans.InvalidationListener
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.scene.image.Image
@@ -89,13 +88,14 @@ abstract class AudioSource(val location: URI)
     
     var loadImage: () -> Unit = {}
         protected set
+        get() = if(!initializing) field else ({})
     
     protected var loaded = false
     
+    private val metadataFile = File(Config.mediaDirectory, "${hexString(location.hashCode())}.metadata")
+    
     init
     {
-        val metadataFile = File(Config.mediaDirectory, "${hexString(location.hashCode())}.metadata")
-    
         if(metadataFile.exists()) try
         {
             DataInputStream(metadataFile.inputStream().buffered()).use {
@@ -225,6 +225,11 @@ abstract class AudioSource(val location: URI)
         {
             System.err.println("Failed to read metadata from audio source. Fully loading audio source instead.")
         }
+    }
+    
+    fun deleteMetadata()
+    {
+        metadataFile.delete()
     }
     
     protected abstract fun init()

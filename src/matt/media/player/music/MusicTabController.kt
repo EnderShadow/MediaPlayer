@@ -39,15 +39,39 @@ class MusicTabController: TabController()
                 musicListTableView.selectionModel.selectedItems.forEach(playlist::addSong)
         }
         
-        val addToPlaylist = Menu("Add to playlist", null, newPlaylist)
+        val addToPlaylist = Menu("Add to playlist", null, newPlaylist, SeparatorMenuItem())
+        
         addToPlaylist.setOnShowing {_ ->
+            if(MediaLibrary.recentPlaylists.isNotEmpty())
+            {
+                MediaLibrary.recentPlaylists.forEach {playlist ->
+                    val playlistMenu = MenuItem(playlist.name)
+                    playlistMenu.setOnAction {
+                        musicListTableView.selectionModel.selectedItems.forEach(playlist::addSong)
+                        var parent = addToPlaylist
+                        while(parent.parentMenu != null)
+                            parent = parent.parentMenu
+                        parent.parentPopup.hide()
+                    }
+                    addToPlaylist.items.add(playlistMenu)
+                }
+                addToPlaylist.items.add(SeparatorMenuItem())
+            }
             MediaLibrary.playlists.forEach {playlist ->
                 val playlistMenu = MenuItem(playlist.name)
-                playlistMenu.setOnAction {musicListTableView.selectionModel.selectedItems.forEach(playlist::addSong)}
+                playlistMenu.setOnAction {
+                    musicListTableView.selectionModel.selectedItems.forEach(playlist::addSong)
+                    var parent = addToPlaylist
+                    while(parent.parentMenu != null)
+                        parent = parent.parentMenu
+                    parent.parentPopup.hide()
+                }
                 addToPlaylist.items.add(playlistMenu)
             }
         }
-        addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+        addToPlaylist.setOnHidden {
+            addToPlaylist.items.subList(2, addToPlaylist.items.size).clear()
+        }
         
         val contextMenu = ContextMenu(play, addToQueue, deleteSongs, addToPlaylist)
         musicListTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE

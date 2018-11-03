@@ -21,6 +21,9 @@ fun main(args: Array<String>)
     Application.launch(GUI::class.java, *args)
 }
 
+var initializing = true
+    private set
+
 class GUI: Application()
 {
     override fun start(primaryStage: Stage)
@@ -52,7 +55,10 @@ class GUI: Application()
             it.consume()
             controller.exit()
         }
+        primaryStage.isMaximized = true
         primaryStage.show()
+        
+        initializing = false
         
         if(Config.showVLCMessage && !VLCAudioSource.vlcDetected())
         {

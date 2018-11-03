@@ -3,6 +3,8 @@ package matt.media.player.music
 import javafx.fxml.FXML
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
 import javafx.stage.Window
 import matt.media.player.MediaLibrary
 import matt.media.player.Playlist
@@ -20,6 +22,14 @@ class NewPlaylistController
     fun initialize()
     {
         playlistName.stylesheets.add("matt/media/player/Settings.css")
+    }
+    
+    fun keyReleased(evt: KeyEvent)
+    {
+        if(evt.code == KeyCode.ENTER)
+            createPlaylistPressed()
+        else if(evt.code == KeyCode.ESCAPE)
+            cancelPressed()
     }
     
     fun createPlaylistPressed()

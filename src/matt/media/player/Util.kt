@@ -55,6 +55,29 @@ fun hexString(num: Int): String
     return stringBuilder.toString()
 }
 
+/**
+ * runs block until it succeeds or it's tried numAttempts times. If numAttempts is -1 it will run block until it succeeds
+ *
+ * @return true if block successfully ran before quitting
+ */
+inline fun retry(numAttempts: Int = -1, block: () -> Unit): Boolean
+{
+    var numTries = 0
+    while(numAttempts < 0 || numTries < numAttempts)
+    {
+        try
+        {
+            block()
+            return true
+        }
+        catch(t: Throwable)
+        {
+            numTries++
+        }
+    }
+    return false
+}
+
 fun formatDuration(duration: Duration?): String
 {
     @Suppress("NAME_SHADOWING")

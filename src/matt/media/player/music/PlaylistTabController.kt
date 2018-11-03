@@ -89,8 +89,44 @@ class PlaylistTabController: TabController()
             parent.parentPopup.hide()
         }
         
-        val addToPlaylist = Menu("Add to playlist", null, addToNewPlaylist)
+        val addToPlaylist = Menu("Add to playlist", null, addToNewPlaylist, SeparatorMenuItem())
         addToPlaylist.setOnShowing {
+            if(MediaLibrary.recentPlaylists.isNotEmpty())
+            {
+                MediaLibrary.recentPlaylists.forEach {playlist ->
+                    @Suppress("NAME_SHADOWING")
+                    val byReference = MenuItem("by reference")
+                    byReference.setOnAction {_ ->
+                        val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                        playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.REFERENCE)
+                    }
+                    @Suppress("NAME_SHADOWING")
+                    val byContents = MenuItem("by contents")
+                    byContents.setOnAction {_ ->
+                        val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                        playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.CONTENTS)
+                    }
+                    @Suppress("NAME_SHADOWING")
+                    val byFlattened = MenuItem("by flattened")
+                    byFlattened.setOnAction {_ ->
+                        val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                        playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.FLATTENED)
+                    }
+                    val playlistMenu = Menu(playlist.name, null, byReference, byContents, byFlattened)
+                    playlistMenu.setOnAction {it ->
+                        if(it.target != playlistMenu)
+                            return@setOnAction
+                        val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
+                        playlist.addPlaylist(playlistToAdd, Config.defaultPlaylistAddMode)
+                        var parent = playlistMenu
+                        while(parent.parentMenu != null)
+                            parent = parent.parentMenu
+                        parent.parentPopup.hide()
+                    }
+                    addToPlaylist.items.add(playlistMenu)
+                }
+                addToPlaylist.items.add(SeparatorMenuItem())
+            }
             MediaLibrary.playlists.forEach {playlist ->
                 @Suppress("NAME_SHADOWING")
                 val byReference = MenuItem("by reference")
@@ -124,7 +160,7 @@ class PlaylistTabController: TabController()
                 addToPlaylist.items.add(playlistMenu)
             }
         }
-        addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+        addToPlaylist.setOnHidden {addToPlaylist.items.subList(2, addToPlaylist.items.size).clear()}
         
         val createNewPlaylist = MenuItem("New playlist")
         createNewPlaylist.setOnAction {
@@ -134,7 +170,7 @@ class PlaylistTabController: TabController()
         playlistView.contextMenu = ContextMenu(createNewPlaylist)
         
         val contextMenu = ContextMenu(play, addToQueue, delete, addToPlaylist)
-        playlistView.cellWidthProperty().value = Screen.getPrimary().visualBounds.width / 13.0
+        playlistView.cellWidthProperty().value = stackPane.prefWidth / 5.2 - playlistView.horizontalCellSpacing
         playlistView.cellHeightProperty().bind(playlistView.cellWidthProperty().multiply(1.25))
         playlistView.setCellFactory {
             val cell = object: GridCell<PlaylistIcon>(){
@@ -343,8 +379,22 @@ class PlaylistTabController: TabController()
                     }
             }
     
-            val addToPlaylist = Menu("Add to playlist", null, newPlaylist)
+            val addToPlaylist = Menu("Add to playlist", null, newPlaylist, SeparatorMenuItem())
             addToPlaylist.setOnShowing {_ ->
+                if(MediaLibrary.recentPlaylists.isNotEmpty())
+                {
+                    MediaLibrary.recentPlaylists.forEach {playlist ->
+                        val playlistMenu = MenuItem(playlist.name)
+                        playlistMenu.setOnAction {mediaListTableView.selectionModel.selectedItems.forEach {mh ->
+                            if(mh is SongHandle)
+                                playlist.addSong(mh.getCurrentAudioSource())
+                            else
+                                playlist.addPlaylist(mh.getPlaylist())
+                        }}
+                        addToPlaylist.items.add(playlistMenu)
+                    }
+                    addToPlaylist.items.add(SeparatorMenuItem())
+                }
                 MediaLibrary.playlists.forEach {playlist ->
                     val playlistMenu = MenuItem(playlist.name)
                     playlistMenu.setOnAction {mediaListTableView.selectionModel.selectedItems.forEach {mh ->
@@ -356,7 +406,7 @@ class PlaylistTabController: TabController()
                     addToPlaylist.items.add(playlistMenu)
                 }
             }
-            addToPlaylist.setOnHidden {addToPlaylist.items.subList(1, addToPlaylist.items.size).clear()}
+            addToPlaylist.setOnHidden {addToPlaylist.items.subList(2, addToPlaylist.items.size).clear()}
     
             val selectionModel = mediaListTableView.selectionModel
             val viewPlaylist = MenuItem("View playlist")
@@ -543,5 +593,12 @@ class PlaylistTabController: TabController()
         }
         
         fun popViewer() = stackPane.children.remove(this)
+        
+        fun playPlaylist()
+        {
+            Player.clearQueue()
+            Player.enqueue(playlist)
+            Player.play()
+        }
     }
 }
