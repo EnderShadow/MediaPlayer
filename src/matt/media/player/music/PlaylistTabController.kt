@@ -218,8 +218,8 @@ class PlaylistTabController: TabController()
         }
         MediaLibrary.playlists.forEach {MediaLibrary.playlistIcons.add(PlaylistIcon(it))}
         
-        val filteredList = MediaLibrary.playlistIcons.filtered {it.playlist.name.contains(rootController.filterField.text, true)}
-        rootController.filterField.textProperty().addListener {_ -> filteredList.setPredicate {it.playlist.name.contains(rootController.filterField.text, true)}}
+        val filteredList = MediaLibrary.playlistIcons.filtered {it.playlist.name.containsSparse(rootController.filterField.text, true)}
+        rootController.filterField.textProperty().addListener {_ -> filteredList.setPredicate {it.playlist.name.containsSparse(rootController.filterField.text, true)}}
         val sortedList = filteredList.sorted()
         sortedList.comparator = Comparator {i1, i2 -> i1.playlist.name.compareTo(i2.playlist.name, true)}
         playlistView.items = sortedList

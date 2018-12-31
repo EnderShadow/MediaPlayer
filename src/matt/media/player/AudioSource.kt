@@ -201,41 +201,36 @@ abstract class AudioSource(val location: URI)
         yearProperty.addListener(metadataChangeListener)
         durationProperty.addListener(metadataChangeListener)
         
-        if(!loaded && isFile(location)) try
+        if(!loaded && isFile(location))
         {
             val audioFile = AudioFileIO.read(File(location))
             
             val header = audioFile.audioHeader
             durationProperty.value = Duration.seconds(header.preciseTrackLength)
             val tag = audioFile.tagOrCreateAndSetDefault
-            if(tag != null)
-            {
-                tag.getFirst(FieldKey.TITLE).let {
-                    if(it.isNotBlank())
-                        titleProperty.value = it
-                    else
-                    {
-                        tag.setField(FieldKey.TITLE, titleProperty.value)
-                        audioFile.commit()
-                    }
+            
+            tag.getFirst(FieldKey.TITLE).let {
+                if(it.isNotBlank())
+                {
+                    titleProperty.value = it
                 }
-                tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
-                tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
-                tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
-                tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
-                tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
-                tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
-                tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
-                
-                loaded = true
+                else
+                {
+                    tag.setField(FieldKey.TITLE, titleProperty.value)
+                    audioFile.commit()
+                }
             }
+            tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
+            tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
+            tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
+            tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
+            tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
+            tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
+            tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
+            
+            loaded = true
         }
-        catch(e: Throwable)
-        {
-            System.err.println("Failed to read metadata from audio source. Fully loading audio source instead.")
-        }
-    
-    
+        
         loadImage = {
             loadImage = {}
             AudioSource.loadImage(this, imageProperty)

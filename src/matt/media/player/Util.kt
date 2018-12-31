@@ -90,13 +90,13 @@ fun formatDuration(duration: Duration?): String
 
 fun doesAudioSourceMatch(audioSource: AudioSource, filterText: StringProperty): Boolean
 {
-    if(audioSource.titleProperty.get().toLowerCase().contains(filterText.get().toLowerCase()))
+    if(audioSource.titleProperty.get().containsSparse(filterText.get(), true))
         return true
-    if(audioSource.artistProperty.get().toLowerCase().contains(filterText.get().toLowerCase()))
+    if(audioSource.artistProperty.get().containsSparse(filterText.get(), true))
         return true
-    if(audioSource.albumProperty.get().toLowerCase().contains(filterText.get().toLowerCase()))
+    if(audioSource.albumProperty.get().containsSparse(filterText.get(), true))
         return true
-    if(audioSource.genreProperty.get().toLowerCase().contains(filterText.get().toLowerCase()))
+    if(audioSource.genreProperty.get().containsSparse(filterText.get(), true))
         return true
     return false
 }
@@ -114,6 +114,20 @@ fun <T> getVisible(tableView: TableView<T>): List<T>
     
     retList.addAll(tableView.items.subList(firstIndex, lastIndex + 1))
     return retList
+}
+
+fun String.containsSparse(text: String, ignoreCase: Boolean = false): Boolean
+{
+    if(text.length > length)
+        return false
+    var index = 0
+    for(c in text)
+    {
+        index = indexOf(c, index, ignoreCase) + 1
+        if(index <= 0)
+            return false
+    }
+    return true
 }
 
 fun squareAndCache(image: Image): Image
