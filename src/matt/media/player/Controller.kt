@@ -269,7 +269,7 @@ class Controller
         val chooser = FileChooser()
         chooser.showOpenMultipleDialog(window)?.forEach {
             val uri = it.toURI()
-            if(isValidAudioFile(uri) && uri !in MediaLibrary.songURIMap)
+            if(isValidAudioFile(uri) && uri !in MediaLibrary.songs.map {it.location})
                 try
                 {
                     MediaLibrary.addSong(AudioSource.create(uri))
@@ -286,7 +286,7 @@ class Controller
     {
         val chooser = DirectoryChooser()
         chooser.showDialog(window)?.let {
-            it.walkTopDown().asSequence().filter {it.isFile && isValidAudioFile(it.toURI()) && it.toURI() !in MediaLibrary.songURIMap}.forEach {
+            it.walkTopDown().asSequence().filter {it.isFile && isValidAudioFile(it.toURI()) && it.toURI() !in MediaLibrary.songs.map {it.location}}.forEach {
                 try
                 {
                     MediaLibrary.addSong(AudioSource.create(it.toURI()))

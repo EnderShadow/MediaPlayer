@@ -21,7 +21,7 @@ object MediaLibrary
     private var libraryDirty = false
     
     val songs: ObservableList<AudioSource> = FXCollections.observableArrayList()
-    val songURIMap: ObservableMap<URI, AudioSource> = FXCollections.observableHashMap()
+    val songUUIDMap: ObservableMap<UUID, AudioSource> = FXCollections.observableHashMap()
     
     val playlists: ObservableList<Playlist> = FXCollections.observableArrayList()
     val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList()
@@ -56,15 +56,16 @@ object MediaLibrary
         Config.libraryFile.forEachLine {
             if(it.isNotBlank())
             {
+                val (uuid, uriPath) = it.split(" ", limit = 2)
                 try
                 {
-                    val uri = URI(it)
+                    val uri = URI(uriPath)
                     if(isValidAudioFile(uri))
-                        addSong(AudioSource.create(uri))
+                        addSong(AudioSource.create(uri, UUID.fromString(uuid)))
                 }
                 catch(_: IllegalArgumentException)
                 {
-                    println("Failed to load song. Maybe it's not a song?: $it")
+                    println("Failed to load song. Maybe it's not a song?: $uriPath")
                 }
             }
         }
@@ -74,7 +75,7 @@ object MediaLibrary
     fun addSong(song: AudioSource)
     {
         songs.add(song)
-        songURIMap[song.location] = song
+        songUUIDMap[song.uuid] = song
         libraryDirty = true
     }
     
@@ -89,7 +90,12 @@ object MediaLibrary
         recentPlaylists.addAll(playlists.subList(lastFiveStartIndex, playlists.size).reversed())
     }
     
-    fun addPlaylist(playlist: Playlist)
+    fun getOrLoadPlaylist(name: String): Playlist
+    {
+        return playlists.find {it.name.equals(name, true)} ?: addPlaylist(Playlist(File(Config.playlistDirectory, "$name.${Playlist.EXTENSION}")))
+    }
+    
+    fun addPlaylist(playlist: Playlist): Playlist
     {
         val index = Collections.binarySearch(playlists, playlist) {p1, p2 -> p1.name.compareTo(p2.name)}
         playlists.add(-(index + 1), playlist)
@@ -98,11 +104,11 @@ object MediaLibrary
             recentPlaylists.remove(playlist)
             recentPlaylists.add(0, playlist)
         }
+        
+        return playlist
     }
     
     fun isPlaylistLoaded(name: String) = playlists.any {it.name.equals(name, true)}
-    
-    fun getPlaylist(name: String) = playlists.find {it.name.equals(name, true)}
     
     fun removePlaylist(playlist: Playlist)
     {
@@ -124,7 +130,7 @@ object MediaLibrary
         while(Player.queue.containsSong(audioSource))
             Player.queue.removeSong(audioSource)
         songs.remove(audioSource)
-        songURIMap.remove(audioSource.location)
+        songUUIDMap.remove(audioSource.uuid)
         audioSource.deleteMetadata()
         if(!DEBUG)
         {
@@ -140,7 +146,7 @@ object MediaLibrary
     {
         if(libraryDirty)
         {
-            Config.libraryFile.writeText(songs.joinToString("\n", postfix = "\n") {it.location.toString()})
+            Config.libraryFile.writeText(songs.joinToString("\n", postfix = "\n") {"${it.uuid} ${it.location}"})
             libraryDirty = false
         }
     }

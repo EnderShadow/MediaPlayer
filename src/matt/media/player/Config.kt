@@ -2,10 +2,9 @@ package matt.media.player
 
 import java.io.File
 import java.io.IOException
-import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
-import java.util.ArrayList
+import java.util.*
 
 object Config
 {

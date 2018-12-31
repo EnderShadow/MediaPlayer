@@ -21,7 +21,6 @@ import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.TextAlignment
-import javafx.stage.Screen
 import javafx.util.Callback
 import matt.media.player.*
 import org.controlsfx.control.GridCell

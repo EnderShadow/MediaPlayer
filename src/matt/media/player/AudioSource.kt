@@ -16,7 +16,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
-abstract class AudioSource(val location: URI)
+abstract class AudioSource(val location: URI, val uuid: UUID)
 {
     companion object
     {
@@ -84,13 +84,16 @@ abstract class AudioSource(val location: URI)
         /**
          * Creates an instance of AudioSource based on the provided uri
          */
-        fun create(uri: URI): AudioSource
+        fun create(uri: URI, uuid: UUID? = null): AudioSource
         {
+            @Suppress("NAME_SHADOWING")
+            val uuid = uuid ?: UUID.randomUUID()
+            
             if(VLCAudioSource.isSupported(uri))
             {
                 try
                 {
-                    val vlcas = VLCAudioSource(uri) as AudioSource
+                    val vlcas = VLCAudioSource(uri, uuid) as AudioSource
                     if(!vlcas.loaded)
                         vlcas.init()
                     return vlcas
@@ -101,7 +104,7 @@ abstract class AudioSource(val location: URI)
             {
                 try
                 {
-                    val jfxas = JavaFXAudioSource(uri) as AudioSource
+                    val jfxas = JavaFXAudioSource(uri, uuid) as AudioSource
                     if(!jfxas.loaded)
                         jfxas.init()
                     return jfxas
@@ -140,15 +143,13 @@ abstract class AudioSource(val location: URI)
     
     protected var loaded = false
     
-    private val metadataFile = File(Config.mediaDirectory, "${hexString(location.hashCode())}.metadata")
+    private val metadataFile = File(Config.mediaDirectory, "$uuid.metadata")
     
     init
     {
         if(metadataFile.exists()) try
         {
             DataInputStream(metadataFile.inputStream().buffered()).use {
-                if(location.toString() != it.readUTF())
-                    throw IOException("Hash collision for URI detected")
                 titleProperty.value = it.readUTF()
                 artistProperty.value = it.readUTF()
                 albumProperty.value = it.readUTF()
@@ -172,7 +173,6 @@ abstract class AudioSource(val location: URI)
                 // Prevents write attempts from overlapping
                 synchronized(location) {
                     DataOutputStream(metadataFile.outputStream().buffered()).use {
-                        it.writeUTF(location.toString())
                         it.writeUTF(titleProperty.value)
                         it.writeUTF(artistProperty.value)
                         it.writeUTF(albumProperty.value)

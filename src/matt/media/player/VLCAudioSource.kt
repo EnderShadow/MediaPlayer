@@ -13,9 +13,10 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.lang.Exception
 import java.net.URI
+import java.util.*
 import kotlin.math.roundToInt
 
-class VLCAudioSource(location: URI): AudioSource(location)
+class VLCAudioSource(location: URI, uuid: UUID): AudioSource(location, uuid)
 {
     companion object
     {

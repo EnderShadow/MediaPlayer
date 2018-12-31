@@ -12,10 +12,9 @@ import javafx.util.Duration
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
-import java.lang.StringBuilder
 import java.lang.invoke.MethodHandles
 import java.net.URI
-import java.util.ArrayList
+import java.util.*
 
 var DEBUG = false
 
@@ -24,8 +23,6 @@ val SERIALIZED_MIME_TYPE = DataFormat("application/x-java-serialized-object")
 private val imageCache = mutableListOf<Image>()
 
 val defaultImage by lazy {Image(MethodHandles.lookup().lookupClass().classLoader.getResourceAsStream("default.jpg"))}
-
-val hexDigits = "0123456789ABCDEF".toCharArray()
 
 val validAudioExtensions = listOf(".asf", ".au", ".ogm", ".ogg", ".mka", ".ts", ".mpg", ".mp3", ".mp2", ".nsc", ".nut", ".a52", ".dts",
         ".aac", ".flac", ".dv", ".vid", ".tta", ".tac", ".ty", ".wav", ".dts", ".xa", ".aif", ".aiff", ".m4a")
@@ -47,35 +44,27 @@ fun isValidFilename(filename: String): Boolean
     }
 }
 
-fun hexString(num: Int): String
-{
-    val stringBuilder = StringBuilder(8)
-    for(i in 28 downTo 0 step 4)
-        stringBuilder.append(hexDigits[(num shr i) and 0xF])
-    return stringBuilder.toString()
-}
-
 /**
- * runs block until it succeeds or it's tried numAttempts times. If numAttempts is -1 it will run block until it succeeds
+ * runs block until it succeeds or it's tried numAttempts times. If numAttempts is less than or equal to 0 it will run block until it succeeds
  *
- * @return true if block successfully ran before quitting
+ * @return returns the value returned by the block or throws an exception if numAttempts has been exceeded
  */
-inline fun retry(numAttempts: Int = -1, block: () -> Unit): Boolean
+inline fun <reified T> retry(numAttempts: Int = 0, block: () -> T): T
 {
     var numTries = 0
-    while(numAttempts < 0 || numTries < numAttempts)
+    while(numAttempts <= 0 || numTries < numAttempts)
     {
         try
         {
-            block()
-            return true
+            return block()
         }
         catch(t: Throwable)
         {
-            numTries++
+            if(numAttempts >= ++numTries)
+                throw t
         }
     }
-    return false
+    throw IllegalStateException("This should never happen")
 }
 
 fun formatDuration(duration: Duration?): String

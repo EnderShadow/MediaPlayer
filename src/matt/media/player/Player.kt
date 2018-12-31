@@ -3,9 +3,8 @@ package matt.media.player
 import javafx.beans.InvalidationListener
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
+import javafx.scene.media.MediaPlayer.Status
 import javafx.util.Duration
-import java.util.*
-import javafx.scene.media.MediaPlayer.Status as Status
 
 object Player
 {

@@ -5,19 +5,18 @@ import javafx.beans.Observable
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
-import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import java.io.File
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
+import java.util.*
 
 class Playlist(name: String): Observable, InvalidationListener
 {
     // Playlist extension
     companion object
     {
-        const val EXTENSION = "m3u8"
+        const val EXTENSION = "rmppl"
     }
     
     private val listeners = mutableListOf<InvalidationListener>()
@@ -38,36 +37,12 @@ class Playlist(name: String): Observable, InvalidationListener
     
     constructor(file: File): this(file.nameWithoutExtension)
     {
-        Files.lines(file.toPath()).map {URI(it)}.forEach {
-            if(isFile(it) && File(it).extension.equals(EXTENSION, true))
+        Files.lines(file.toPath()).forEach {
+            when
             {
-                // is a local playlist
-                val playlistFile = File(it)
-                if(!MediaLibrary.isPlaylistLoaded(playlistFile.nameWithoutExtension))
-                {
-                    val temp = Playlist(playlistFile)
-                    MediaLibrary.addPlaylist(temp)
-                    addPlaylist(temp)
-                }
-                else
-                {
-                    addPlaylist(MediaLibrary.getPlaylist(playlistFile.nameWithoutExtension)!!)
-                }
-            }
-            else if(it in MediaLibrary.songURIMap)
-            {
-                // is an already loaded song
-                addSong(MediaLibrary.songURIMap[it]!!)
-            }
-            else if(isValidAudioFile(it))
-            {
-                val song = AudioSource.create(it)
-                MediaLibrary.addSong(song)
-                addSong(song)
-            }
-            else
-            {
-                // TODO try to load remote playlist
+                it[0] == 's' -> addSong(MediaLibrary.songUUIDMap[UUID.fromString(it.substring(1))]!!)
+                it[0] == 'p' -> addPlaylist(MediaLibrary.getOrLoadPlaylist(it.substring(1)))
+                else -> System.err.println("Unknown entry in ${file.absolutePath}\n\t$it")
             }
         }
         dirty = false
@@ -290,9 +265,9 @@ class Playlist(name: String): Observable, InvalidationListener
         val saveLoc = File(saveDir, "$name.$EXTENSION")
         val data = contents.map {
             if(it is SongHandle)
-                it.getCurrentAudioSource().location.toString()
+                "s${it.getCurrentAudioSource().uuid}"
             else
-                File(Config.playlistDirectory, "${it.getPlaylist().name}.$EXTENSION").toURI().toString()
+                "p${it.getPlaylist().name}"
         }
         Files.write(saveLoc.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         dirty = false

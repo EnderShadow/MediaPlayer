@@ -1,18 +1,15 @@
 package matt.media.player
 
 import javafx.beans.InvalidationListener
-import javafx.beans.property.SimpleIntegerProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
 import javafx.collections.MapChangeListener
 import javafx.scene.image.Image
 import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
-import java.io.File
 import java.net.URI
+import java.util.*
 
-class JavaFXAudioSource(location: URI): AudioSource(location)
+class JavaFXAudioSource(location: URI, uuid: UUID): AudioSource(location, uuid)
 {
     companion object
     {

@@ -8,7 +8,6 @@ import javafx.fxml.FXML
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.MouseButton
-import javafx.scene.layout.AnchorPane
 import javafx.util.Callback
 import matt.media.player.*
 import java.util.concurrent.Callable
