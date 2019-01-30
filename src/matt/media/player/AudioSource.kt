@@ -166,74 +166,78 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
         {
             System.err.println("Failed to read song metadata from file")
         }
-    
-        val metadataChangeListener = ChangeListener<Any> {_, old, new ->
-            if(old != new && new != null) try
-            {
-                // Prevents write attempts from overlapping
-                synchronized(location) {
-                    DataOutputStream(metadataFile.outputStream().buffered()).use {
-                        it.writeUTF(titleProperty.value)
-                        it.writeUTF(artistProperty.value)
-                        it.writeUTF(albumProperty.value)
-                        it.writeUTF(genreProperty.value)
-                        it.writeUTF(albumArtistProperty.value)
-                        it.writeInt(trackCountProperty.value)
-                        it.writeInt(trackNumberProperty.value)
-                        it.writeUTF(yearProperty.value)
-                        it.writeDouble(durationProperty.value.toMillis())
+        
+        @Suppress("LeakingThis")
+        if(this !is NOPAudioSource)
+        {
+            val metadataChangeListener = ChangeListener<Any> {_, old, new ->
+                if(old != new && new != null) try
+                {
+                    // Prevents write attempts from overlapping
+                    synchronized(location) {
+                        DataOutputStream(metadataFile.outputStream().buffered()).use {
+                            it.writeUTF(titleProperty.value)
+                            it.writeUTF(artistProperty.value)
+                            it.writeUTF(albumProperty.value)
+                            it.writeUTF(genreProperty.value)
+                            it.writeUTF(albumArtistProperty.value)
+                            it.writeInt(trackCountProperty.value)
+                            it.writeInt(trackNumberProperty.value)
+                            it.writeUTF(yearProperty.value)
+                            it.writeDouble(durationProperty.value.toMillis())
+                        }
                     }
                 }
+                catch(ioe: IOException)
+                {
+                    System.err.println("Failed to write song metadata to file")
+                }
             }
-            catch(ioe: IOException)
+    
+            titleProperty.addListener(metadataChangeListener)
+            artistProperty.addListener(metadataChangeListener)
+            albumProperty.addListener(metadataChangeListener)
+            genreProperty.addListener(metadataChangeListener)
+            albumArtistProperty.addListener(metadataChangeListener)
+            trackCountProperty.addListener(metadataChangeListener)
+            trackNumberProperty.addListener(metadataChangeListener)
+            yearProperty.addListener(metadataChangeListener)
+            durationProperty.addListener(metadataChangeListener)
+    
+            if(!loaded && isFile(location))
             {
-                System.err.println("Failed to write song metadata to file")
-            }
-        }
+                val audioFile = AudioFileIO.read(File(location))
         
-        titleProperty.addListener(metadataChangeListener)
-        artistProperty.addListener(metadataChangeListener)
-        albumProperty.addListener(metadataChangeListener)
-        genreProperty.addListener(metadataChangeListener)
-        albumArtistProperty.addListener(metadataChangeListener)
-        trackCountProperty.addListener(metadataChangeListener)
-        trackNumberProperty.addListener(metadataChangeListener)
-        yearProperty.addListener(metadataChangeListener)
-        durationProperty.addListener(metadataChangeListener)
+                val header = audioFile.audioHeader
+                durationProperty.value = Duration.seconds(header.preciseTrackLength)
+                val tag = audioFile.tagOrCreateAndSetDefault
         
-        if(!loaded && isFile(location))
-        {
-            val audioFile = AudioFileIO.read(File(location))
-            
-            val header = audioFile.audioHeader
-            durationProperty.value = Duration.seconds(header.preciseTrackLength)
-            val tag = audioFile.tagOrCreateAndSetDefault
-            
-            tag.getFirst(FieldKey.TITLE).let {
-                if(it.isNotBlank())
-                {
-                    titleProperty.value = it
+                tag.getFirst(FieldKey.TITLE).let {
+                    if(it.isNotBlank())
+                    {
+                        titleProperty.value = it
+                    }
+                    else
+                    {
+                        tag.setField(FieldKey.TITLE, titleProperty.value)
+                        audioFile.commit()
+                    }
                 }
-                else
-                {
-                    tag.setField(FieldKey.TITLE, titleProperty.value)
-                    audioFile.commit()
-                }
-            }
-            tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
-            tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
-            tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
-            tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
-            tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
-            tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
-            tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
-            
-            loaded = true
-        }
+                tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
+                tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
+                tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
+                tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
+                tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
+                tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
+                tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
         
-        loadImage = {
-            loadImage = {}
-            AudioSource.loadImage(this, imageProperty)
+                loaded = true
+            }
+    
+            loadImage = {
+                loadImage = {}
+                AudioSource.loadImage(this, imageProperty)
+            }
         }
     }
     

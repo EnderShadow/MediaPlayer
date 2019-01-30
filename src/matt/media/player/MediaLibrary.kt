@@ -53,6 +53,7 @@ object MediaLibrary
     
     fun loadSongs()
     {
+        val notFoundUris = mutableListOf<Pair<UUID, URI>>()
         Config.libraryFile.forEachLine {
             if(it.isNotBlank())
             {
@@ -61,7 +62,10 @@ object MediaLibrary
                 {
                     val uri = URI(uriPath)
                     if(isValidAudioFile(uri))
-                        addSong(AudioSource.create(uri, UUID.fromString(uuid)))
+                        if(testUri(uri))
+                            addSong(AudioSource.create(uri, UUID.fromString(uuid)))
+                        else
+                            notFoundUris.add(Pair(UUID.fromString(uuid), uri))
                 }
                 catch(_: IllegalArgumentException)
                 {
@@ -69,7 +73,46 @@ object MediaLibrary
                 }
             }
         }
-        libraryDirty = false
+        if(notFoundUris.isNotEmpty())
+        {
+            val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
+            alertBox.showAndWait()
+            when(alertBox.returnValue)
+            {
+                MissingSongStrategy.REMOVE -> libraryDirty = true
+                MissingSongStrategy.EXIT -> {
+                    libraryDirty = false
+                    System.exit(0)
+                }
+                MissingSongStrategy.IGNORE -> {
+                    notFoundUris.forEach {(uuid, uri) -> addSong(NOPAudioSource(uri, uuid))}
+                    libraryDirty = false
+                }
+                MissingSongStrategy.LOCATE -> {
+                    // TODO have user locate songs
+                }
+            }
+        }
+        else
+        {
+            libraryDirty = false
+        }
+    }
+    
+    fun testUri(uri: URI): Boolean
+    {
+        return if(uri.scheme.equals("file", true))
+            File(uri).exists()
+        else
+            try
+            {
+                uri.toURL().openStream().close()
+                true
+            }
+            catch(_: Throwable)
+            {
+                false
+            }
     }
     
     fun addSong(song: AudioSource)
