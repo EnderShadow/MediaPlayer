@@ -155,23 +155,27 @@ object MediaLibrary
     
     fun removePlaylist(playlist: Playlist)
     {
+        Player.prepareForRemovalOfPlaylist(playlist)
         playlists.remove(playlist)
         for(pl in playlists)
             while(pl.containsPlaylist(playlist))
                 pl.removePlaylist(playlist)
+        Player.rootQueuePlaylist.let {
+            while(it.containsPlaylist(playlist))
+                it.removePlaylist(playlist)
+        }
         File(Config.playlistDirectory, "${playlist.name}.${Playlist.EXTENSION}").delete()
     }
     
     fun removeSong(audioSource: AudioSource)
     {
-        while(Player.currentlyPlaying.value?.getCurrentAudioSource() == audioSource)
-            Player.next()
+        Player.prepareForRemovalOfSong(audioSource)
         playlists.forEach {
             while(it.containsSong(audioSource))
                 it.removeSong(audioSource)
         }
-        while(Player.queue.containsSong(audioSource))
-            Player.queue.removeSong(audioSource)
+        while(Player.rootQueuePlaylist.containsSong(audioSource))
+            Player.rootQueuePlaylist.removeSong(audioSource)
         songs.remove(audioSource)
         songUUIDMap.remove(audioSource.uuid)
         audioSource.deleteMetadata()

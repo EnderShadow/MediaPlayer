@@ -109,6 +109,8 @@ class Playlist(name: String): Observable, InvalidationListener
         if(index < 0 || index > contents.size)
             throw ArrayIndexOutOfBoundsException("Cannot put AudioSource at index less than 0 or greater than ${contents.size}")
         
+        if(contents.isNotEmpty())
+            Player.prepareForAdditionOfMediaAtInPlaylist(index, this)
         contents.add(index, SongHandle(audioSource))
         numSongs++
         dirty = true
@@ -128,7 +130,9 @@ class Playlist(name: String): Observable, InvalidationListener
                 // check for recursive playlist
                 if(this == playlist || playlist.containsPlaylistRecursive(this))
                     throw IllegalArgumentException("Cannot add a playlist to another playlist such that it loops forever")
-                
+    
+                if(contents.isNotEmpty())
+                    Player.prepareForAdditionOfMediaAtInPlaylist(index, this)
                 contents.add(index, PlaylistHandle(playlist))
                 playlists.add(playlist)
                 playlist.addListener(this)
@@ -138,7 +142,7 @@ class Playlist(name: String): Observable, InvalidationListener
                     if(mediaHandle is SongHandle)
                         addSong(index, mediaHandle.getCurrentAudioSource())
                     else
-                        addPlaylist(index, mediaHandle.getPlaylist())
+                        addPlaylist(index, mediaHandle.getPlaylist(), PlaylistAddMode.REFERENCE)
             }
             PlaylistAddMode.FLATTENED -> {
                 for(mediaHandle in playlist.contents.asReversed().toList())
@@ -162,18 +166,18 @@ class Playlist(name: String): Observable, InvalidationListener
         if(mediaHandles.any {it !in contents})
             throw IllegalArgumentException("One or more songs is not in the playlist")
         
+        Player.prepareForMovingMediaHandlesInPlaylistTo(mediaHandles, this, index)
         val numBefore = mediaHandles.count {contents.indexOf(it) < index}
         contents.removeAll(mediaHandles)
         contents.addAll(index - numBefore, mediaHandles)
         dirty = true
         invalidated(this)
-        if(Player.currentlyPlaying.value != null && Player.queue.containsPlaylistRecursive(this))
-        {
-            Player.queueIndex = Player.flatQueue.songs.indexOf(Player.currentlyPlaying.value)
-        }
         return index - numBefore
     }
     
+    /**
+     * The player must have already been told to prepare for removal of a song, playlist, or media handle otherwise the media player will be in an inconsistent state
+     */
     private fun removeMedia0(mediaHandle: MediaHandle)
     {
         if(mediaHandle is SongHandle)
@@ -190,15 +194,14 @@ class Playlist(name: String): Observable, InvalidationListener
     {
         if(mediaHandle in contents)
         {
-            if(Player.queue.containsRecursive(mediaHandle) && Player.currentlyPlaying.value?.let{containsRecursive(it)} == true)
-            {
-                while(Player.currentlyPlaying.value?.let {containsRecursive(it)} == true)
-                    Player.next()
-            }
+            Player.prepareForRemovalOfMediaHandleInPlaylist(mediaHandle, this)
             removeMedia0(mediaHandle)
         }
     }
     
+    /**
+     * Player.prepareForRemovalOfSong must be called before this otherwise the media player will be in an inconsistent state
+     */
     fun removeSong(audioSource: AudioSource)
     {
         val songHandle = contents.find {it is SongHandle && it.getCurrentAudioSource() == audioSource}
@@ -210,6 +213,9 @@ class Playlist(name: String): Observable, InvalidationListener
             Player.play()
     }
     
+    /**
+     * Player.prepareForRemovalOfPlaylist must be called before this otherwise the media player will be in an inconsistent state
+     */
     fun removePlaylist(playlist: Playlist)
     {
         val playlistHandle = contents.find {it is PlaylistHandle && it.getPlaylist() == playlist}
@@ -248,6 +254,9 @@ class Playlist(name: String): Observable, InvalidationListener
         return playlists.any {it.containsRecursive(mediaHandle)}
     }
     
+    /**
+     * This should never be called unless you are clearing the root queue playlist
+     */
     fun clearPlaylist()
     {
         contents.clear()

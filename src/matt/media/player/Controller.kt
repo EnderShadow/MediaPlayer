@@ -72,7 +72,7 @@ class Controller
         
         playButtonIcon.visibleProperty().bind(Player.playing.not())
         pauseButtonIcon.visibleProperty().bind(Player.playing)
-        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
+        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
         
         val timeChangeListener = InvalidationListener {
             if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
@@ -132,8 +132,8 @@ class Controller
         loopIcon2.fillProperty().bind(colorBinding)
         loopSingleIcon.visibleProperty().bind(Player.loopMode.isEqualTo(LoopMode.SINGLE))
         
-        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
-        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.flatQueue.songs.isEmpty()}, Player.flatQueue))
+        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
+        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
         
         colorBinding = Bindings.`when`(Player.shuffling).then(Color.valueOf("#FF7300")).otherwise(Color.valueOf("BLACK"))
         shuffleIcon1.strokeProperty().bind(colorBinding)
@@ -175,13 +175,13 @@ class Controller
                     }
                     else
                     {
-                        if(selectedItem in Player.queue.media)
+                        if(selectedItem in Player.rootQueuePlaylist.media)
                         {
                             queueViewer.playlistViewTableView.scrollTo(selectedItem)
                         }
                         else
                         {
-                            val item = Player.queue.media.asSequence().filter {it is PlaylistHandle}.first {it.getPlaylist().containsRecursive(selectedItem)}
+                            val item = Player.rootQueuePlaylist.media.asSequence().filter {it is PlaylistHandle}.first {it.getPlaylist().containsRecursive(selectedItem)}
                             queueViewer.playlistViewTableView.scrollTo(item)
                         }
                     }
@@ -379,7 +379,7 @@ class Controller
         {
             playlistViewTableView.stylesheets.add("matt/media/player/music/PlaylistViewer.css")
             
-            val playlist = Player.queue
+            val playlist = Player.rootQueuePlaylist
             
             val deleteSongs = MenuItem("Delete")
             deleteSongs.setOnAction {
@@ -609,7 +609,7 @@ class Controller
     
             addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {it.getAudioSource(0).loadImage()}}
     
-            playlistViewTableView.items = Player.queue.media
+            playlistViewTableView.items = Player.rootQueuePlaylist.media
         }
         
         fun setPrefWidth()
