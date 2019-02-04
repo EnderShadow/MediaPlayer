@@ -79,15 +79,21 @@ fun formatDuration(duration: Duration?): String
 
 fun doesAudioSourceMatch(audioSource: AudioSource, filterText: StringProperty): Boolean
 {
-    if(audioSource.titleProperty.get().containsSparse(filterText.get(), true))
-        return true
-    if(audioSource.artistProperty.get().containsSparse(filterText.get(), true))
-        return true
-    if(audioSource.albumProperty.get().containsSparse(filterText.get(), true))
-        return true
-    if(audioSource.genreProperty.get().containsSparse(filterText.get(), true))
-        return true
-    return false
+    return permutations(audioSource.titleProperty.value, audioSource.artistProperty.value, audioSource.albumProperty.value, audioSource.genreProperty.value)
+            .any {it.containsSparse(filterText.value, true)}
+}
+
+fun permutations(vararg strings: String): Sequence<String>
+{
+    if(strings.isEmpty())
+        return emptySequence()
+    if(strings.size == 1)
+        return sequenceOf(strings[0])
+    
+    var seq = emptySequence<String>()
+    for(fixed in strings.indices)
+        seq += permutations(*strings.slice(strings.indices.filter {it != fixed}).toTypedArray()).map {"${strings[fixed]} $it"}
+    return seq
 }
 
 fun <T> getVisible(tableView: TableView<T>): List<T>
