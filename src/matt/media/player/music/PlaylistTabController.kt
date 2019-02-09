@@ -260,7 +260,10 @@ class PlaylistTabController: TabController()
     
         private fun setupDisplay()
         {
-            playlist.media.take(10).forEach {it.getAudioSource(0).loadImage()}
+            playlist.media.take(10).forEach {
+                if(it !is PlaylistHandle || !it.getPlaylist().isRecursivelyEmpty())
+                    it.getAudioSource(0).loadImage()
+            }
             
             val image1 = ImageView()
             image1.imageProperty().bind(getImage(0))
@@ -588,7 +591,10 @@ class PlaylistTabController: TabController()
                     SimpleStringProperty("")
             }
             
-            mediaListTableView.addEventHandler(EventType.ROOT) {getVisible(mediaListTableView).forEach {it.getAudioSource(0).loadImage()}}
+            mediaListTableView.addEventHandler(EventType.ROOT) {getVisible(mediaListTableView).forEach {
+                if(it !is PlaylistHandle || !it.getPlaylist().isRecursivelyEmpty())
+                    it.getAudioSource(0).loadImage()
+            }}
         }
         
         fun popViewer() = stackPane.children.remove(this)

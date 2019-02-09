@@ -33,7 +33,7 @@ class Playlist(name: String): Observable, InvalidationListener
     val media: ObservableList<MediaHandle> = FXCollections.unmodifiableObservableList(contents)
     private var numSongs = 0
     private val playlists = mutableListOf<Playlist>()
-    var dirty = false
+    var dirty = true
     
     constructor(file: File): this(file.nameWithoutExtension)
     {

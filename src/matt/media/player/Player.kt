@@ -141,17 +141,9 @@ object Player
     fun next()
     {
         if(shuffling.value)
-        {
-            var randIndex = (Math.random() * rootQueuePlaylist.size()).toInt()
-            stop()
-            while(randIndex-- > 0)
-                nextSong(false)
-            play()
-        }
+            Player.jumpTo((Math.random() * rootQueuePlaylist.size()).toInt())
         else
-        {
             nextSong()
-        }
     }
     
     private fun nextSong(playAfterFind: Boolean = true)
@@ -268,10 +260,14 @@ object Player
         currentlyPlaying.value?.getCurrentAudioSource()?.volume = newVolume
     }
     
-    fun jumpTo(mediaHandle: MediaHandle)
+    fun jumpTo(songIndex: Int)
     {
+        @Suppress("NAME_SHADOWING")
+        var songIndex = songIndex
         stop()
-        while(playlistStack.peek().media[mediaIndexStack.peek()] != mediaHandle)
+        if(rootQueuePlaylist.media[0] is PlaylistHandle)
+            nextSong(false)
+        while(songIndex-- > 0)
             nextSong(false)
         play()
     }

@@ -342,8 +342,7 @@ class Controller
                     cell.setOnMouseClicked {
                         if(it.button == MouseButton.PRIMARY && it.clickCount >= 2 && it.pickResult.intersectedNode != null)
                         {
-                            val selected = flatViewTableView.selectionModel.selectedItem
-                            Player.jumpTo(selected)
+                            Player.jumpTo(flatViewTableView.selectionModel.selectedIndex)
                             it.consume()
                         }
                     }
@@ -555,17 +554,16 @@ class Controller
                 val cellFactory = Callback<TableColumn<MediaHandle, out Any>, TableCell<MediaHandle, out Any>> {_ ->
                     val cell = oldFactory.call(null)
                     cell.contextMenu = contextMenu
-                    cell.setOnMouseClicked {
-                        if(it.button == MouseButton.PRIMARY && it.clickCount >= 2 && it.pickResult.intersectedNode != null)
+                    cell.setOnMouseClicked {event ->
+                        if(event.button == MouseButton.PRIMARY && event.clickCount >= 2 && event.pickResult.intersectedNode != null)
                         {
-                            val selected = playlistViewTableView.selectionModel.selectedItem
-                            if(selected is SongHandle)
-                                Player.jumpTo(selected)
-                            else if(!(selected as PlaylistHandle).getPlaylist().isRecursivelyEmpty())
-                                Player.jumpTo(selected.getPlaylist().flatView.songs[0])
-                            it.consume()
+                            val selectedIndex = playlistViewTableView.selectionModel.selectedIndex
+                            val priorItems = playlistViewTableView.items.subList(0, selectedIndex)
+                            val numSongsPrior = priorItems.sumBy {if(it is SongHandle) 1 else it.getPlaylist().size()}
+                            Player.jumpTo(numSongsPrior)
+                            event.consume()
                         }
-                        else if(it.button == MouseButton.SECONDARY)
+                        else if(event.button == MouseButton.SECONDARY)
                         {
                             cell.contextMenu.show(queuePopOver)
                         }
@@ -607,7 +605,10 @@ class Controller
                     Bindings.createStringBinding(Callable {formatDuration(it.value.getCurrentAudioSource().durationProperty.value)}, it.value.getCurrentAudioSource().durationProperty)
             }
     
-            addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {it.getAudioSource(0).loadImage()}}
+            addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {
+                if(it !is PlaylistHandle || !it.getPlaylist().isRecursivelyEmpty())
+                    it.getAudioSource(0).loadImage()}
+            }
     
             playlistViewTableView.items = Player.rootQueuePlaylist.media
         }
