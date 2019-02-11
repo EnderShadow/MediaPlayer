@@ -281,23 +281,6 @@ object Player
             val mediaIndexChange = playlist.media.subList(0, mediaIndexStack[index]).count {it is SongHandle && it.getCurrentAudioSource() == audioSource}
             mediaIndexStack[index] -= mediaIndexChange
         }
-        if(currentlyPlaying.value?.getCurrentAudioSource() == audioSource)
-        {
-            currentlyPlaying.value!!.getCurrentAudioSource().let {
-                it.onEndOfMedia = {
-                    it.seek(Duration.ZERO)
-                    if(loopMode.value == LoopMode.SINGLE)
-                    {
-                        it.play()
-                    }
-                    else
-                    {
-                        stop(false)
-                        play()
-                    }
-                }
-            }
-        }
     }
     
     /**
@@ -314,20 +297,6 @@ object Player
         {
             playlistStack.subList(0, indexOfPlaylist + 1).clear()
             mediaIndexStack.subList(0, indexOfPlaylist + 1).clear()
-            Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
-                it.onEndOfMedia = {
-                    it.seek(Duration.ZERO)
-                    if(loopMode.value == LoopMode.SINGLE)
-                    {
-                        it.play()
-                    }
-                    else
-                    {
-                        stop(false)
-                        play()
-                    }
-                }
-            }
         }
     }
     
@@ -339,23 +308,6 @@ object Player
         playlistStack.withIndex().filter {it.value == playlistToRemoveFrom}.forEach {(index, playlist) ->
             if(playlist.media.indexOf(mediaHandle) < mediaIndexStack[index])
                 mediaIndexStack[index]--
-            else if(playlist.media.indexOf(mediaHandle) == mediaIndexStack[index] && mediaHandle is SongHandle && Player.currentlyPlaying.value == mediaHandle)
-            {
-                Player.currentlyPlaying.value!!.getCurrentAudioSource().let {
-                    it.onEndOfMedia = {
-                        it.seek(Duration.ZERO)
-                        if(loopMode.value == LoopMode.SINGLE)
-                        {
-                            it.play()
-                        }
-                        else
-                        {
-                            stop(false)
-                            play()
-                        }
-                    }
-                }
-            }
         }
         if(mediaHandle is PlaylistHandle)
         {
@@ -364,20 +316,6 @@ object Player
             {
                 playlistStack.subList(0, indexOfPlaylist + 1).clear()
                 mediaIndexStack.subList(0, indexOfPlaylist + 1).clear()
-                Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
-                    it.onEndOfMedia = {
-                        it.seek(Duration.ZERO)
-                        if(loopMode.value == LoopMode.SINGLE)
-                        {
-                            it.play()
-                        }
-                        else
-                        {
-                            stop(false)
-                            play()
-                        }
-                    }
-                }
             }
         }
     }

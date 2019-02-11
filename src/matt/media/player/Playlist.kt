@@ -5,6 +5,7 @@ import javafx.beans.Observable
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import java.io.File
 import java.nio.file.Files
@@ -196,6 +197,28 @@ class Playlist(name: String): Observable, InvalidationListener
         {
             Player.prepareForRemovalOfMediaHandleInPlaylist(mediaHandle, this)
             removeMedia0(mediaHandle)
+            
+            val isCurrentMedia = if(mediaHandle is SongHandle)
+            {
+                Player.currentlyPlaying.value == mediaHandle
+            }
+            else
+            {
+                Player.currentlyPlaying.value?.let(mediaHandle.getPlaylist()::containsRecursive) == true
+            }
+            
+            if(isCurrentMedia)
+            {
+                if(Player.status == MediaPlayer.Status.PLAYING)
+                {
+                    Player.stop(false)
+                    Player.play()
+                }
+                else
+                {
+                    Player.stop(false)
+                }
+            }
         }
     }
     

@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
+import javafx.scene.media.MediaPlayer
 import matt.media.player.music.PlaylistTabController
 import java.io.File
 import java.lang.IllegalArgumentException
@@ -164,6 +165,20 @@ object MediaLibrary
             while(it.containsPlaylist(playlist))
                 it.removePlaylist(playlist)
         }
+        
+        // Explicit comparison with true because it's a nullable boolean
+        if(Player.currentlyPlaying.value?.let(playlist::containsRecursive) == true)
+        {
+            if(Player.status == MediaPlayer.Status.PLAYING)
+            {
+                Player.stop(false)
+                Player.play()
+            }
+            else
+            {
+                Player.stop(false)
+            }
+        }
         File(Config.playlistDirectory, "${playlist.name}.${Playlist.EXTENSION}").delete()
     }
     
@@ -176,6 +191,20 @@ object MediaLibrary
         }
         while(Player.rootQueuePlaylist.containsSong(audioSource))
             Player.rootQueuePlaylist.removeSong(audioSource)
+    
+        if(Player.currentlyPlaying.value?.getCurrentAudioSource() == audioSource)
+        {
+            if(Player.status == MediaPlayer.Status.PLAYING)
+            {
+                Player.stop(false)
+                Player.play()
+            }
+            else
+            {
+                Player.stop(false)
+            }
+        }
+        
         songs.remove(audioSource)
         songUUIDMap.remove(audioSource.uuid)
         audioSource.deleteMetadata()
