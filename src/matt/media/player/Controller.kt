@@ -1,5 +1,6 @@
 package matt.media.player
 
+import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleObjectProperty
@@ -12,6 +13,7 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.ClipboardContent
+import javafx.scene.input.DragEvent
 import javafx.scene.input.MouseButton
 import javafx.scene.input.TransferMode
 import javafx.scene.layout.AnchorPane
@@ -311,6 +313,8 @@ class Controller
         @FXML lateinit var playlistViewTableView: TableView<MediaHandle>
         @FXML lateinit var flatViewTableView: TableView<SongHandle>
         
+        private val autoScrollThread = AutoScrollThread()
+        
         init
         {
             val loader = FXMLLoader(QueueViewer::class.java.getResource("QueueViewer.fxml"))
@@ -323,6 +327,7 @@ class Controller
         {
             initFlatView()
             initPlaylistView()
+            autoScrollThread.start()
         }
         
         private fun initFlatView()
@@ -538,6 +543,31 @@ class Controller
                 row
             }
     
+            playlistViewTableView.addEventFilter(DragEvent.DRAG_OVER) {event ->
+                val proximity = playlistViewTableView.height / 10
+                val tableBounds = playlistViewTableView.layoutBounds
+                val dragY = event.y
+                val topYProximity = tableBounds.minY + proximity
+                val bottomYProximity = tableBounds.maxY - proximity
+        
+                when
+                {
+                    dragY < topYProximity -> {
+                        autoScrollThread.speed = ((topYProximity - dragY) / proximity * 5).toInt() + 1
+                        autoScrollThread.scrollMode = ScrollMode.UP
+                    }
+                    dragY > bottomYProximity -> {
+                        autoScrollThread.speed = ((dragY - bottomYProximity) / proximity * 5).toInt() + 1
+                        autoScrollThread.scrollMode = ScrollMode.DOWN
+                    }
+                    else -> autoScrollThread.scrollMode = ScrollMode.NONE
+                }
+            }
+    
+            playlistViewTableView.addEventFilter(DragEvent.DRAG_DROPPED) {
+                autoScrollThread.scrollMode = ScrollMode.NONE
+            }
+    
             val contextMenu = ContextMenu(deleteSongs, addToPlaylist, replacePlaylist)
             playlistViewTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
             
@@ -617,6 +647,39 @@ class Controller
         {
             prefWidthProperty().bind(window.widthProperty().multiply(0.3))
             prefHeightProperty().bind(window.heightProperty().multiply(0.7))
+        }
+    
+        private inner class AutoScrollThread: Thread("Playlist autoscroll thread")
+        {
+            @Volatile
+            var scrollMode = ScrollMode.NONE
+            @Volatile
+            var speed: Int = 0
+        
+            init
+            {
+                isDaemon = true
+            }
+        
+            override fun run()
+            {
+                while(true)
+                {
+                    val scrollBar = playlistViewTableView.lookup(".scroll-bar:vertical") as ScrollBar?
+                
+                    if(scrollBar != null)
+                    {
+                        when(scrollMode)
+                        {
+                            ScrollMode.UP -> Platform.runLater {repeat(speed) {scrollBar.decrement()}}
+                            ScrollMode.DOWN -> Platform.runLater {repeat(speed) {scrollBar.increment()}}
+                            ScrollMode.NONE -> {} // Nothing to do here
+                        }
+                    }
+                
+                    Thread.sleep(50)
+                }
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package matt.media.player.music
 
+import javafx.application.Platform
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.beans.binding.Bindings
@@ -15,6 +16,7 @@ import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.ClipboardContent
+import javafx.scene.input.DragEvent
 import javafx.scene.input.MouseButton
 import javafx.scene.input.TransferMode
 import javafx.scene.layout.*
@@ -33,6 +35,8 @@ class PlaylistTabController: TabController()
     @FXML private lateinit var stackPane: StackPane
     
     private lateinit var lastClickedCell: GridCell<PlaylistIcon>
+    
+    private val autoScrollThread = AutoScrollThread()
     
     override fun init()
     {
@@ -176,7 +180,7 @@ class PlaylistTabController: TabController()
                 override fun updateItem(item: PlaylistIcon?, empty: Boolean)
                 {
                     super.updateItem(item, empty)
-                    graphic = if(item == null || empty)
+                    graphic = if(empty)
                         null
                     else
                         item
@@ -225,6 +229,8 @@ class PlaylistTabController: TabController()
         playlistView.addEventHandler(EventType.ROOT) {
             //TODO initialize songs in playlist
         }
+        
+        autoScrollThread.start()
     }
     
     override fun onSelected()
@@ -235,6 +241,10 @@ class PlaylistTabController: TabController()
     inner class PlaylistIcon(val playlist: Playlist): VBox(), InvalidationListener
     {
         val nameProperty = SimpleStringProperty()
+        private val image1 = ImageView()
+        private val image2 = ImageView()
+        private val image3 = ImageView()
+        private val image4 = ImageView()
         
         init
         {
@@ -265,7 +275,6 @@ class PlaylistTabController: TabController()
                     it.getAudioSource(0).loadImage()
             }
             
-            val image1 = ImageView()
             image1.imageProperty().bind(getImage(0))
             image1.fitWidthProperty().bind(prefWidthProperty().divide(2))
             image1.fitHeightProperty().bind(prefHeightProperty().divide(2))
@@ -273,7 +282,6 @@ class PlaylistTabController: TabController()
             image1.isCache = true
             image1.isPreserveRatio = true
         
-            val image2 = ImageView()
             image2.imageProperty().bind(getImage(1))
             image2.fitWidthProperty().bind(prefWidthProperty().divide(2))
             image2.fitHeightProperty().bind(prefHeightProperty().divide(2))
@@ -281,7 +289,6 @@ class PlaylistTabController: TabController()
             image2.isCache = true
             image2.isPreserveRatio = true
         
-            val image3 = ImageView()
             image3.imageProperty().bind(getImage(2))
             image3.fitWidthProperty().bind(prefWidthProperty().divide(2))
             image3.fitHeightProperty().bind(prefHeightProperty().divide(2))
@@ -289,7 +296,6 @@ class PlaylistTabController: TabController()
             image3.isCache = true
             image3.isPreserveRatio = true
         
-            val image4 = ImageView()
             image4.imageProperty().bind(getImage(3))
             image4.fitWidthProperty().bind(prefWidthProperty().divide(2))
             image4.fitHeightProperty().bind(prefHeightProperty().divide(2))
@@ -303,7 +309,7 @@ class PlaylistTabController: TabController()
             val name = Label()
             name.textProperty().bind(Bindings.createStringBinding(Callable {nameProperty.value.trim()}, nameProperty))
             name.textAlignment = TextAlignment.CENTER
-            name.font = Font.font(name.font.family, 18.0)
+            name.font = Font.font(name.font.family, 16.0)
             name.isWrapText = true
         
             val nameVBox: VBox
@@ -311,7 +317,7 @@ class PlaylistTabController: TabController()
             secondaryText.textProperty().set("Playlist")
             secondaryText.visibleProperty().bind(secondaryText.textProperty().isNotEmpty)
             secondaryText.textAlignment = TextAlignment.CENTER
-            secondaryText.font = Font.font(secondaryText.font.family, 14.0)
+            secondaryText.font = Font.font(secondaryText.font.family, 12.0)
             secondaryText.isWrapText = true
         
             nameVBox = VBox(name, secondaryText)
@@ -322,6 +328,18 @@ class PlaylistTabController: TabController()
             children.addAll(imageHBox1, imageHBox2, nameVBox)
         }
         
+        private fun updateImages()
+        {
+            playlist.media.take(10).forEach {
+                if(it !is PlaylistHandle || !it.getPlaylist().isRecursivelyEmpty())
+                    it.getAudioSource(0).loadImage()
+            }
+            image1.imageProperty().bind(getImage(0))
+            image2.imageProperty().bind(getImage(1))
+            image3.imageProperty().bind(getImage(2))
+            image4.imageProperty().bind(getImage(3))
+        }
+        
         private fun getImage(index: Int): ObjectProperty<Image>
         {
             // TODO better duplicate removal?
@@ -330,7 +348,7 @@ class PlaylistTabController: TabController()
             return if(images.isEmpty()) SimpleObjectProperty(defaultImage) else images[index % images.size]
         }
     
-        override fun invalidated(observable: Observable?) = setupDisplay()
+        override fun invalidated(observable: Observable?) = updateImages()
     }
     
     inner class PlaylistViewer: AnchorPane()
@@ -509,6 +527,31 @@ class PlaylistTabController: TabController()
                 row
             }
             
+            mediaListTableView.addEventFilter(DragEvent.DRAG_OVER) {event ->
+                val proximity = mediaListTableView.height / 10
+                val tableBounds = mediaListTableView.layoutBounds
+                val dragY = event.y
+                val topYProximity = tableBounds.minY + proximity
+                val bottomYProximity = tableBounds.maxY - proximity
+    
+                when
+                {
+                    dragY < topYProximity -> {
+                        autoScrollThread.speed = ((topYProximity - dragY) / proximity * 5).toInt() + 1
+                        autoScrollThread.scrollMode = ScrollMode.UP
+                    }
+                    dragY > bottomYProximity -> {
+                        autoScrollThread.speed = ((dragY - bottomYProximity) / proximity * 5).toInt() + 1
+                        autoScrollThread.scrollMode = ScrollMode.DOWN
+                    }
+                    else -> autoScrollThread.scrollMode = ScrollMode.NONE
+                }
+            }
+            
+            mediaListTableView.addEventFilter(DragEvent.DRAG_DROPPED) {
+                autoScrollThread.scrollMode = ScrollMode.NONE
+            }
+            
             val contextMenu = ContextMenu(play, addToQueue, deleteSongs, addToPlaylist, viewPlaylist, replacePlaylist)
             mediaListTableView.selectionModel.selectionMode = SelectionMode.MULTIPLE
             mediaListTableView.columns.forEach {col ->
@@ -604,6 +647,42 @@ class PlaylistTabController: TabController()
             Player.clearQueue()
             Player.enqueue(playlist)
             Player.play()
+        }
+    }
+    
+    private inner class AutoScrollThread: Thread("Playlist autoscroll thread")
+    {
+        @Volatile
+        var scrollMode = ScrollMode.NONE
+        @Volatile
+        var speed: Int = 0
+        
+        init
+        {
+            isDaemon = true
+        }
+        
+        override fun run()
+        {
+            while(true)
+            {
+                val scrollBar = stackPane.children.lastOrNull().takeIf {it is PlaylistViewer}?.let {
+                    // The scroll bar may be null
+                    (it as PlaylistViewer).mediaListTableView.lookup(".scroll-bar:vertical") as ScrollBar?
+                }
+                
+                if(scrollBar != null)
+                {
+                    when(scrollMode)
+                    {
+                        ScrollMode.UP -> Platform.runLater {repeat(speed) {scrollBar.decrement()}}
+                        ScrollMode.DOWN -> Platform.runLater {repeat(speed) {scrollBar.increment()}}
+                        ScrollMode.NONE -> {} // Nothing to do here
+                    }
+                }
+                
+                Thread.sleep(50)
+            }
         }
     }
 }
