@@ -649,7 +649,7 @@ class Controller
             prefHeightProperty().bind(window.heightProperty().multiply(0.7))
         }
     
-        private inner class AutoScrollThread: Thread("Playlist autoscroll thread")
+        private inner class AutoScrollThread: Thread("Queue autoscroll thread")
         {
             @Volatile
             var scrollMode = ScrollMode.NONE
