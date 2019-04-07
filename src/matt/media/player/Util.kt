@@ -44,6 +44,8 @@ fun isValidFilename(filename: String): Boolean
     }
 }
 
+val tempDirectory = File(System.getProperty("java.io.tmpdir"))
+
 /**
  * runs block until it succeeds or it's tried numAttempts times. If numAttempts is less than or equal to 0 it will run block until it succeeds
  *

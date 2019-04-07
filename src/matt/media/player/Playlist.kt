@@ -25,7 +25,7 @@ class Playlist(name: String): Observable, InvalidationListener
     val flatView by lazy {FlatPlaylistView(this)}
     
     val nameProperty = SimpleStringProperty(name)
-    var name
+    var name: String
         get() = nameProperty.value
         set(value) = nameProperty.set(value)
     

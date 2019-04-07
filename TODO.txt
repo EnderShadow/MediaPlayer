@@ -1,0 +1,25 @@
+High Priority
+-Add support for adding songs from URIs in the GUI
+-Add support for copying/moving media to the media player directory
+-Add support for exporting/importing media library/playlists
+-Add detection of playlists with UUIDs that are not in the library
+-Finish UI for locating missing songs
+
+Medium Priority
+-Add Genre tab
+-Add Artist tab
+
+Low Priority
+-Song art deduplication
+-Optimize load order of song art
+
+Enhancements
+-Add support for plugins
+    -Custom tabs
+    -Additional context menu items
+    -Additional audio sources
+-Add support for re-ordering tabs
+-Add support for hiding tabs
+-Custom theme support
+    -Better light theme
+    -Dark theme

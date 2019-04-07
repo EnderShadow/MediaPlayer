@@ -34,7 +34,7 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
                         val (audioSource, imageProperty) = imageToLoad
                         try
                         {
-                            val artworkData = AudioFileIO.read(File(audioSource.location)).tagOrCreateAndSetDefault.firstArtwork?.binaryData
+                            val artworkData = AudioFileIO.read(File(audioSource.location)).tagOrCreateAndSetDefault.artworkList.firstOrNull {it != null}?.binaryData
                             if(artworkData != null)
                             {
                                 val image = Image(ByteArrayInputStream(artworkData))

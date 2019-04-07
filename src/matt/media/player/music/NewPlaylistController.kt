@@ -8,6 +8,9 @@ import javafx.scene.input.KeyEvent
 import javafx.stage.Window
 import matt.media.player.MediaLibrary
 import matt.media.player.Playlist
+import matt.media.player.tempDirectory
+import java.io.File
+import java.lang.Exception
 
 class NewPlaylistController
 {
@@ -37,8 +40,21 @@ class NewPlaylistController
         val name = playlistName.text
         if(MediaLibrary.playlists.none {it.name == name})
         {
-            createdPlaylist = Playlist(name)
-            window.hide()
+            try
+            {
+                // make sure file is a valid name
+                val tempFile = File(tempDirectory, name)
+                tempFile.createNewFile()
+                tempFile.delete()
+                
+                createdPlaylist = Playlist(name)
+                window.hide()
+            }
+            catch(_: Exception)
+            {
+                if("error" !in playlistName.styleClass)
+                    playlistName.styleClass.add("error")
+            }
         }
         else
         {
