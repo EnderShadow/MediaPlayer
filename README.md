@@ -25,6 +25,7 @@ Currently requires you to use JRE 8
 ### Low Priority
 - Song art deduplication
 - Optimize load order of song art
+- Better automatic sizing of the UI
 
 ### Enhancements
 - Add support for plugins
