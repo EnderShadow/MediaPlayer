@@ -12,6 +12,7 @@ import uk.co.caprica.vlcj.discovery.NativeDiscovery
 
 fun main(args: Array<String>)
 {
+    System.setProperty("VLCJ_INITX", "no")
     if(args.isNotEmpty() && args[0] == "-d")
         DEBUG = true
     

@@ -1,9 +1,7 @@
 # MediaPlayer
 A Media Player I'm creating for fun and my own personal use
 
-Requires Java 8 with the following JVM argument  
-`-DVLCJ_INITX=no`  
-This is due to a bug in linux (or at least Ubuntu 18.04.1) where the JVM crashes when using vlcj and other native libraries when opening a file/folder chooser.
+Currently requires you to use JRE 8
 
 ### Notable features
 
