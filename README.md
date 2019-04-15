@@ -1,7 +1,7 @@
 # MediaPlayer
 A Media Player I'm creating for fun and my own personal use
 
-Currently requires you to use JRE 8
+Currently requires you to use JRE/JDK 8
 
 ### Notable features
 
@@ -37,3 +37,9 @@ Currently requires you to use JRE 8
 - Custom theme support
   - Better light theme
   - Dark theme
+- JavaFX 9+ support
+- Add support for websites such as Spotify
+- Multiplatform support
+  - Android
+  - iOS (maybe?)
+  - WebApp (maybe?)
