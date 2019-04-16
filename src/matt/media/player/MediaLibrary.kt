@@ -78,7 +78,7 @@ object MediaLibrary
         {
             val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
             alertBox.showAndWait()
-            when(alertBox.returnValue)
+            when(alertBox.returnValue ?: MissingSongStrategy.IGNORE)
             {
                 MissingSongStrategy.REMOVE -> libraryDirty = true
                 MissingSongStrategy.EXIT -> {
