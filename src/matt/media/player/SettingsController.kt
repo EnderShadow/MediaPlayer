@@ -11,6 +11,7 @@ import javafx.util.StringConverter
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 class SettingsController
@@ -38,13 +39,13 @@ class SettingsController
     
     private fun reset()
     {
-        directoryChooser.initialDirectory = Config.dataDirectory
-        dataDirectory.text = Config.dataDirectory.absolutePath
-        vlcDirectory.text = Config.vlcDirectory.path
-        maxImageSize.text = Config.maxImageSize.toString()
-        maxLoadedSources.text = Config.maxLoadedSources.toString()
-        vlcMessageCheckbox.isSelected = Config.showVLCMessage
-        defaultPlaylistAddMode.value = Config.defaultPlaylistAddMode
+        directoryChooser.initialDirectory = Config.getPath(ConfigKey.DATA_DIRECTORY).toFile()
+        dataDirectory.text = Config.getString(ConfigKey.DATA_DIRECTORY)
+        vlcDirectory.text = Config.getString(ConfigKey.VLC_DIRECTORY)
+        maxImageSize.text = Config.getInt(ConfigKey.MAX_IMAGE_SIZE).toString()
+        maxLoadedSources.text = Config.getInt(ConfigKey.MAX_LOADED_SOURCES).toString()
+        vlcMessageCheckbox.isSelected = Config.getBoolean(ConfigKey.SUPPRESS_VLC_MESSAGE)
+        defaultPlaylistAddMode.value = Playlist.PlaylistAddMode.valueOf(Config.getString(ConfigKey.DEFAULT_PLAYLIST_ADD_MODE))
     }
     
     fun changeMediaDir()
@@ -109,12 +110,12 @@ class SettingsController
         {
             try
             {
-                val newDataDirectory = File(dataDirectory.text)
-                if(newDataDirectory.canonicalFile != Config.dataDirectory.canonicalFile)
+                val newDataDirectory = Paths.get(dataDirectory.text)
+                if(newDataDirectory != Config.getPath(ConfigKey.DATA_DIRECTORY))
                 {
-                    Files.move(Config.dataDirectory.toPath(), newDataDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
+                    Files.move(Config.getPath(ConfigKey.DATA_DIRECTORY), newDataDirectory, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
                 }
-                Config.dataDirectory = newDataDirectory
+                Config[ConfigKey.DATA_DIRECTORY] = newDataDirectory.toString()
             }
             catch(ioe: IOException)
             {
@@ -122,12 +123,12 @@ class SettingsController
                 ioe.printStackTrace()
             }
             
-            Config.vlcDirectory = File(vlcDirectory.text)
-            Config.maxImageSize = maxImageSize.text.toInt()
-            Config.maxLoadedSources = maxLoadedSources.text.toInt()
-            Config.showVLCMessage = vlcMessageCheckbox.isSelected
-            Config.defaultPlaylistAddMode = defaultPlaylistAddMode.value
-            Config.updateConfig()
+            Config[ConfigKey.VLC_DIRECTORY] = vlcDirectory.text
+            Config[ConfigKey.MAX_IMAGE_SIZE] = maxImageSize.text.toInt()
+            Config[ConfigKey.MAX_LOADED_SOURCES] = maxLoadedSources.text.toInt()
+            Config[ConfigKey.SUPPRESS_VLC_MESSAGE] = vlcMessageCheckbox.isSelected
+            Config[ConfigKey.DEFAULT_PLAYLIST_ADD_MODE] = defaultPlaylistAddMode.value.name
+            Config.save()
             
             window.hide()
             reset()

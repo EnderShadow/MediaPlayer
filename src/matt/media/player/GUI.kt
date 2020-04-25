@@ -30,7 +30,7 @@ class GUI: Application()
     override fun start(primaryStage: Stage)
     {
         Config.load()
-        NativeLibrary.addSearchPath("libvlc", Config.vlcDirectory.path)
+        NativeLibrary.addSearchPath("libvlc", Config.getString(ConfigKey.VLC_DIRECTORY))
         NativeDiscovery().discover() // discovers VLC
         val loader = FXMLLoader(javaClass.getResource("GUI.fxml"))
         val root: Parent = loader.load()
@@ -61,7 +61,7 @@ class GUI: Application()
         
         initializing = false
         
-        if(Config.showVLCMessage && !VLCAudioSource.vlcDetected())
+        if(!Config.getBoolean(ConfigKey.SUPPRESS_VLC_MESSAGE) && !VLCAudioSource.vlcDetected())
         {
             val bit64 = Native.POINTER_SIZE == 8
             val alertBox = AlertBox("VLC not detected", "Please install VLC. You're computer requires the ${if(bit64) "64" else "32"}-bit version of VLC. While VLC is not required, some media files may not load if it is not installed.", "Ok" to Unit)

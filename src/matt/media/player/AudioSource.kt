@@ -12,6 +12,9 @@ import org.jaudiotagger.tag.FieldKey
 import java.io.*
 import java.lang.IllegalArgumentException
 import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
@@ -67,7 +70,7 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
         {
             activeSources.remove(audioSource)
             activeSources.add(audioSource)
-            while(activeSources.size > Config.maxLoadedSources)
+            while(activeSources.size > Config[ConfigKey.MAX_LOADED_SOURCES] as Int)
             {
                 val oldSource = if(Player.currentlyPlaying.value is SongHandle && Player.currentlyPlaying.value?.getCurrentAudioSource() == activeSources[0])
                 {
@@ -143,13 +146,13 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
     
     protected var loaded = false
     
-    private val metadataFile = File(Config.mediaDirectory, "$uuid.metadata")
+    private val metadataFile = mediaDirectory.resolve("$uuid.metadata")
     
     init
     {
-        if(metadataFile.exists()) try
+        if(Files.exists(metadataFile)) try
         {
-            DataInputStream(metadataFile.inputStream().buffered()).use {
+            DataInputStream(Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()).use {
                 titleProperty.value = it.readUTF()
                 artistProperty.value = it.readUTF()
                 albumProperty.value = it.readUTF()
@@ -175,7 +178,7 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
                 {
                     // Prevents write attempts from overlapping
                     synchronized(location) {
-                        DataOutputStream(metadataFile.outputStream().buffered()).use {
+                        DataOutputStream(Files.newOutputStream(metadataFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).buffered()).use {
                             it.writeUTF(titleProperty.value)
                             it.writeUTF(artistProperty.value)
                             it.writeUTF(albumProperty.value)
@@ -236,14 +239,14 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
     
             loadImage = {
                 loadImage = {}
-                AudioSource.loadImage(this, imageProperty)
+                loadImage(this, imageProperty)
             }
         }
     }
     
     fun deleteMetadata()
     {
-        metadataFile.delete()
+        Files.deleteIfExists(metadataFile)
     }
     
     protected abstract fun init()

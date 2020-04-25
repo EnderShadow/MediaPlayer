@@ -7,8 +7,8 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
-import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
 
@@ -36,14 +36,14 @@ class Playlist(name: String): Observable, InvalidationListener
     private val playlists = mutableListOf<Playlist>()
     var dirty = true
     
-    constructor(file: File): this(file.nameWithoutExtension)
+    constructor(path: Path): this(path.nameWithoutExtension)
     {
-        Files.lines(file.toPath()).forEach {
+        Files.lines(path).forEach {
             when
             {
                 it[0] == 's' -> addSong(MediaLibrary.songUUIDMap[UUID.fromString(it.substring(1))]!!)
                 it[0] == 'p' -> addPlaylist(MediaLibrary.getOrLoadPlaylist(it.substring(1)))
-                else -> System.err.println("Unknown entry in ${file.absolutePath}\n\t$it")
+                else -> System.err.println("Unknown entry in ${path.toAbsolutePath()}\n\t$it")
             }
         }
         dirty = false
@@ -289,19 +289,19 @@ class Playlist(name: String): Observable, InvalidationListener
         invalidated(this)
     }
     
-    fun save(saveDir: File)
+    fun save(savePath: Path)
     {
-        if(!saveDir.exists())
-            saveDir.mkdirs()
+        if(Files.notExists(savePath))
+            Files.createDirectories(savePath)
         
-        val saveLoc = File(saveDir, "$name.$EXTENSION")
+        val saveLoc = savePath.resolve("$name.$EXTENSION")
         val data = contents.map {
             if(it is SongHandle)
                 "s${it.getCurrentAudioSource().uuid}"
             else
                 "p${it.getPlaylist().name}"
         }
-        Files.write(saveLoc.toPath(), data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+        Files.write(saveLoc, data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         dirty = false
     }
     

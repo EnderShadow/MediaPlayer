@@ -41,7 +41,7 @@
             </HBox>
             <HBox spacing="5.0">
                <children>
-                  <Label text="Show VLC message on startup?" />
+                  <Label text="Suppress VLC message on startup?" />
                   <CheckBox fx:id="vlcMessageCheckbox" mnemonicParsing="false" />
                </children>
             </HBox>

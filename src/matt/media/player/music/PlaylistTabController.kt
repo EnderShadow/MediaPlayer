@@ -85,7 +85,7 @@ class PlaylistTabController: TabController()
         addToNewPlaylist.setOnAction {
             if(it.target != addToNewPlaylist)
                 return@setOnAction
-            createPlaylistFromSelectedPlaylist(Config.defaultPlaylistAddMode)
+            createPlaylistFromSelectedPlaylist(Playlist.PlaylistAddMode.valueOf(Config.getString(ConfigKey.DEFAULT_PLAYLIST_ADD_MODE)))
             var parent = addToNewPlaylist
             while(parent.parentMenu != null)
                 parent = parent.parentMenu
@@ -120,7 +120,7 @@ class PlaylistTabController: TabController()
                         if(it.target != playlistMenu)
                             return@setOnAction
                         val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
-                        playlist.addPlaylist(playlistToAdd, Config.defaultPlaylistAddMode)
+                        playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.valueOf(Config.getString(ConfigKey.DEFAULT_PLAYLIST_ADD_MODE)))
                         var parent = playlistMenu
                         while(parent.parentMenu != null)
                             parent = parent.parentMenu
@@ -154,7 +154,7 @@ class PlaylistTabController: TabController()
                     if(it.target != playlistMenu)
                         return@setOnAction
                     val playlistToAdd = (lastClickedCell.graphic as PlaylistIcon).playlist
-                    playlist.addPlaylist(playlistToAdd, Config.defaultPlaylistAddMode)
+                    playlist.addPlaylist(playlistToAdd, Playlist.PlaylistAddMode.valueOf(Config.getString(ConfigKey.DEFAULT_PLAYLIST_ADD_MODE)))
                     var parent = playlistMenu
                     while(parent.parentMenu != null)
                         parent = parent.parentMenu
@@ -681,7 +681,7 @@ class PlaylistTabController: TabController()
                     }
                 }
                 
-                Thread.sleep(50)
+                sleep(50)
             }
         }
     }

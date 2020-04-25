@@ -11,6 +11,9 @@ import matt.media.player.music.PlaylistTabController
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.*
 import kotlin.ConcurrentModificationException
 import kotlin.concurrent.thread
@@ -33,7 +36,7 @@ object MediaLibrary
     {
         Runtime.getRuntime().addShutdownHook(Thread {
             flushLibrary()
-            playlists.asSequence().filter {it.dirty}.forEach {it.save(Config.playlistDirectory)}
+            playlists.asSequence().filter {it.dirty}.forEach {it.save(playlistDirectory)}
         })
         
         recentPlaylists.addListener(InvalidationListener {_ ->
@@ -55,7 +58,7 @@ object MediaLibrary
     fun loadSongs()
     {
         val notFoundUris = mutableListOf<Pair<UUID, URI>>()
-        Config.libraryFile.forEachLine {
+        Files.lines(libraryFile).forEach {
             if(it.isNotBlank())
             {
                 val (uuid, uriPath) = it.split(" ", limit = 2)
@@ -125,9 +128,9 @@ object MediaLibrary
     
     fun loadPlaylists()
     {
-        for(file in Config.playlistDirectory.listFiles().filter {it.extension == Playlist.EXTENSION})
-            if(!isPlaylistLoaded(file.nameWithoutExtension))
-                addPlaylist(Playlist(file))
+        for(path in Files.newDirectoryStream(playlistDirectory).filter {it.extension == Playlist.EXTENSION})
+            if(!isPlaylistLoaded(path.nameWithoutExtension))
+                addPlaylist(Playlist(path))
         
         recentPlaylists.clear()
         val lastFiveStartIndex = max(playlists.size - 5, 0)
@@ -136,7 +139,7 @@ object MediaLibrary
     
     fun getOrLoadPlaylist(name: String): Playlist
     {
-        return playlists.find {it.name.equals(name, true)} ?: addPlaylist(Playlist(File(Config.playlistDirectory, "$name.${Playlist.EXTENSION}")))
+        return playlists.find {it.name.equals(name, true)} ?: addPlaylist(Playlist(playlistDirectory.resolve("$name.${Playlist.EXTENSION}")))
     }
     
     fun addPlaylist(playlist: Playlist): Playlist
@@ -179,7 +182,7 @@ object MediaLibrary
                 Player.stop(false)
             }
         }
-        File(Config.playlistDirectory, "${playlist.name}.${Playlist.EXTENSION}").delete()
+        Files.deleteIfExists(playlistDirectory.resolve("${playlist.name}.${Playlist.EXTENSION}"))
     }
     
     fun removeSong(audioSource: AudioSource)
@@ -222,7 +225,7 @@ object MediaLibrary
     {
         if(libraryDirty)
         {
-            Config.libraryFile.writeText(songs.joinToString("\n", postfix = "\n") {"${it.uuid} ${it.location}"})
+            Files.write(libraryFile, songs.map {"${it.uuid} ${it.location}"}, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
             libraryDirty = false
         }
     }

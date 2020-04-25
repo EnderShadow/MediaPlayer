@@ -9,12 +9,16 @@ import javafx.scene.image.Image
 import javafx.scene.input.DataFormat
 import javafx.scene.paint.Color
 import javafx.util.Duration
+import org.json.JSONObject
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.net.URI
+import java.nio.file.Path
 import java.util.*
+import kotlin.math.min
+import kotlin.math.round
 
 var DEBUG = false
 
@@ -172,17 +176,18 @@ fun Color.withinThreshold(other: Color, redThreshold: Double, greenThreshold: Do
 
 fun squareImage(bi: BufferedImage): BufferedImage
 {
-    if(bi.height == bi.width && (Config.maxImageSize <= 0 || Config.maxImageSize >= bi.width))
+    val maxImageSize = Config.getInt(ConfigKey.MAX_IMAGE_SIZE)
+    if(bi.height == bi.width && (maxImageSize <= 0 || maxImageSize >= bi.width))
         return bi
     
-    var newSize = Math.min(bi.height, bi.width)
+    var newSize = min(bi.height, bi.width)
     
     var img: java.awt.Image = bi
-    if(Config.maxImageSize in 1 until newSize)
+    if(maxImageSize in 1 until newSize)
     {
-        val scale = Config.maxImageSize.toDouble() / newSize
-        img = bi.getScaledInstance(Math.round(bi.width * scale).toInt(), Math.round(bi.height * scale).toInt(), BufferedImage.SCALE_SMOOTH)
-        newSize = Config.maxImageSize
+        val scale = maxImageSize.toDouble() / newSize
+        img = bi.getScaledInstance(round(bi.width * scale).toInt(), round(bi.height * scale).toInt(), BufferedImage.SCALE_SMOOTH)
+        newSize = maxImageSize
     }
     
     val newImage = BufferedImage(newSize, newSize, BufferedImage.TYPE_INT_ARGB)
@@ -192,4 +197,51 @@ fun squareImage(bi: BufferedImage): BufferedImage
     g.drawImage(img, xOffset, yOffset, null)
     g.dispose()
     return newImage
+}
+
+val mediaDirectory: Path
+    get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("Media")
+
+val playlistDirectory: Path
+    get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("Playlists")
+
+val libraryFile: Path
+    get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("library.txt")
+
+val Path.extension: String
+    get() = toString().substringAfterLast('.', "")
+
+val Path.nameWithoutExtension: String
+    get() = fileName.toString().substringBeforeLast(".")
+
+operator fun JSONObject.set(key: String, value: Any) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Int) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Long) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Float) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Double) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Boolean) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Map<*, *>) {
+    put(key, value)
+}
+
+operator fun JSONObject.set(key: String, value: Collection<*>) {
+    put(key, value)
 }

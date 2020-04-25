@@ -1,101 +1,74 @@
 package matt.media.player
 
-import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
-import java.util.*
+import org.json.JSONObject
+import java.nio.file.*
 
-object Config
-{
-    private val configFile = File(System.getProperty("user.home") + "/.config/Media Player/config.cfg")
+data class ConfigKey(val keyString: String) {
+    companion object {
+        val DATA_DIRECTORY = ConfigKey("dataDirectory")
+        val VLC_DIRECTORY = ConfigKey("vlcDirectory")
+        val MAX_IMAGE_SIZE = ConfigKey("maxImageSize")
+        val MAX_LOADED_SOURCES = ConfigKey("maxLoadedSources")
+        val SUPPRESS_VLC_MESSAGE = ConfigKey("suppressVLCMessage")
+        val DEFAULT_PLAYLIST_ADD_MODE = ConfigKey("defaultPlaylistAddMode")
+    }
+}
+
+object Config {
+    private val configPath = Paths.get("${System.getProperty("user.home")}/.config/Media Player/config.json")
     private const val VERSION = "1.0.0"
     
-    var dataDirectory = File(System.getProperty("user.home") + "/Media Player")
-    val mediaDirectory
-        get() = File(dataDirectory, "Media")
-    val playlistDirectory
-        get() = File(dataDirectory, "Playlists")
-    val libraryFile
-        get() = File(dataDirectory, "library.txt")
-    var vlcDirectory = File("")
-    var maxImageSize = 100
-    var maxLoadedSources = 10
-    var showVLCMessage = true
-    var defaultPlaylistAddMode = Playlist.PlaylistAddMode.REFERENCE
-
-    fun load()
-    {
-        if(!configFile.exists())
-        {
-            configFile.parentFile.mkdirs()
-            updateConfig()
-        }
-        else
-        {
-            try
-            {
-                val configData = Files.readAllLines(configFile.toPath())
-
-                configData.removeIf {str -> str.trim().run {startsWith("#") || isEmpty()}}
-                val version = configData.removeAt(0).split(':')[1].trim()
-
-                // do anything with the version here
-
-                for(str in configData)
-                {
-                    val line = str.split(':', limit=2)
-                    when(line[0].trim())
-                    {
-                        "dataDirectory" -> dataDirectory = File(line[1].trim())
-                        "vlcDirectory" -> vlcDirectory = File(line[1].trim())
-                        "maxImageSize" -> maxImageSize = line[1].trim().toInt()
-                        "maxLoadedSources" -> maxLoadedSources = line[1].trim().toInt()
-                        "showVLCMessage" -> showVLCMessage = line[1].trim().toBoolean()
-                        "defaultPlaylistAddMode" -> defaultPlaylistAddMode = Playlist.PlaylistAddMode.valueOf(line[1].trim().toUpperCase())
-                        else -> println("Unknown setting in config: \"$str\"")
-                    }
-                }
-                
-                if(version != VERSION)
-                {
-                    println("Config version mismatch detected. Saving config")
-                    updateConfig()
-                }
-            }
-            catch(ioe: IOException)
-            {
-                System.err.println("Unable to read config. Using default config.")
-            }
-        }
-        
-        mediaDirectory.mkdirs()
-        playlistDirectory.mkdirs()
-        libraryFile.createNewFile()
+    private val configuration = JSONObject()
+    
+    init {
+        configuration["version"] = VERSION
+        configuration[ConfigKey.DATA_DIRECTORY.keyString] = "${System.getProperty("user.home")}/Media Player"
+        configuration[ConfigKey.VLC_DIRECTORY.keyString] = ""
+        configuration[ConfigKey.MAX_IMAGE_SIZE.keyString] = 100
+        configuration[ConfigKey.MAX_LOADED_SOURCES.keyString] = 10
+        configuration[ConfigKey.SUPPRESS_VLC_MESSAGE.keyString] = false
+        configuration[ConfigKey.DEFAULT_PLAYLIST_ADD_MODE.keyString] = "REFERENCE"
     }
-
-    fun updateConfig()
-    {
-        val configData = ArrayList<String>()
-        configData.add("version: $VERSION")
-        configData.add("dataDirectory: ${dataDirectory.path}")
-        configData.add("vlcDirectory: ${vlcDirectory.path}")
-        configData.add("maxImageSize: $maxImageSize")
-        configData.add("maxLoadedSources: $maxLoadedSources")
-        configData.add("showVLCMessage: $showVLCMessage")
-        configData.add("defaultPlaylistAddMode: ${defaultPlaylistAddMode.name}")
+    
+    operator fun set(key: ConfigKey, value: Any) {
+        configuration[key.keyString] = value
+    }
+    
+    operator fun set(key: ConfigKey, value: Path) {
+        this[key] = value.toString()
+    }
+    
+    operator fun get(key: ConfigKey): Any {
+        return configuration[key.keyString]
+    }
+    
+    fun getPath(key: ConfigKey): Path = Paths.get(getString(key))
+    fun getInt(key: ConfigKey) = this[key] as Int
+    fun getBoolean(key: ConfigKey) = this[key] as Boolean
+    fun getString(key: ConfigKey) = this[key] as String
+    
+    fun load() {
+        // if it doesn't exist then defaults will be used until a change to them is made
+        if(Files.notExists(configPath))
+            return
         
-        println("Config updated")
-        configData.forEach {println(it)}
-        println()
+        // load the config and replace default values with the saved values. Unrecognized values are preserved
+        val readConfig = JSONObject(Files.readAllLines(configPath).joinToString("\n"))
+        readConfig.keys().forEach {
+            configuration[it] = readConfig[it]
+        }
+    }
+    
+    fun save() {
+        if(Files.notExists(configPath.parent))
+            Files.createDirectories(configPath.parent)
         
-        try
-        {
-            Files.write(configFile.toPath(), configData, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+        // atomic move to ensure that either the old or new data is written
+        val tempConfigPath = configPath.resolveSibling("${configPath.fileName}.new")
+        Files.newOutputStream(tempConfigPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC).use {
+            it.write(configuration.toString(4).toByteArray())
+            it.flush()
         }
-        catch(ioe: IOException)
-        {
-            System.err.println("Unable to create or update config.")
-        }
+        Files.move(tempConfigPath, configPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
     }
 }
