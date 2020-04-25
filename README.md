@@ -17,6 +17,8 @@ Currently requires you to use JRE/JDK 8
 - Add support for exporting/importing media library/playlists
 - Add detection of playlists with UUIDs that are not in the library
 - Finish UI for locating missing songs
+- Redo playlist format
+- Redo library format
 
 ### Medium Priority
 - Add Genre tab
