@@ -476,8 +476,9 @@ class Controller
             val replacePlaylist = Menu("Replace with...", null, replaceContents, replaceFlattened)
             replacePlaylist.visibleProperty().bind(Bindings.createBooleanBinding(Callable {selectionModel.selectedItems.size == 1 && selectionModel.selectedItem is PlaylistHandle}, selectionModel.selectedItems))
             
+            val rowFactory = playlistViewTableView.rowFactory
             playlistViewTableView.setRowFactory {tableView ->
-                val row = TableRow<MediaHandle>()
+                val row = rowFactory?.call(tableView) ?: TableRow()
         
                 row.setOnDragDetected {
                     if(!row.isEmpty)
