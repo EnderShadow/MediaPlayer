@@ -1,9 +1,8 @@
 package matt.media.player
 
-import com.sun.javafx.scene.control.skin.TableViewSkin
-import com.sun.javafx.scene.control.skin.VirtualFlow
 import javafx.beans.property.StringProperty
 import javafx.embed.swing.SwingFXUtils
+import javafx.scene.control.TableRow
 import javafx.scene.control.TableView
 import javafx.scene.image.Image
 import javafx.scene.input.DataFormat
@@ -16,7 +15,6 @@ import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.nio.file.Path
-import java.util.*
 import kotlin.math.min
 import kotlin.math.round
 
@@ -104,17 +102,22 @@ fun permutations(vararg strings: String): Sequence<String>
 
 fun <T> getVisible(tableView: TableView<T>): List<T>
 {
-    val retList = ArrayList<T>()
-    val skin = tableView.skin as TableViewSkin<*>
-    val flow = skin.children.stream().filter {it is VirtualFlow<*>}.findFirst().get() as VirtualFlow<*>
+    val height = tableView.height - tableView.lookup(".column-header-background").boundsInLocal.height
     
-    if(flow.firstVisibleCell == null)
-        return retList
-    val firstIndex = flow.firstVisibleCell.index
-    val lastIndex = flow.lastVisibleCell.index
+    @Suppress("UNCHECKED_CAST")
+    val tableRows = tableView.lookupAll(".table-row-cell") as Set<TableRow<T>>
     
-    retList.addAll(tableView.items.subList(firstIndex, lastIndex + 1))
-    return retList
+    // For some reason there is a table row with an index of -1, so there needs to be an explicit check for the index being non-negative
+    val visibleRowIndices = tableRows.asSequence().filter {it.index >= 0 && it.isVisible && it.boundsInParent.maxY >= 0 && it.boundsInParent.minY <= height}.map {it.index}.toMutableList()
+    visibleRowIndices.sort()
+    
+    val firstIndex = visibleRowIndices.firstOrNull() ?: -1
+    val lastIndex = visibleRowIndices.lastOrNull() ?: -1
+    
+    if(firstIndex == -1 || lastIndex == -1)
+        return emptyList()
+    
+    return tableView.items.subList(firstIndex, lastIndex + 1)
 }
 
 fun String.containsSparse(text: String, ignoreCase: Boolean = false): Boolean
