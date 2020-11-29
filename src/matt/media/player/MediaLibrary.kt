@@ -12,12 +12,12 @@ import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
 import kotlin.ConcurrentModificationException
 import kotlin.concurrent.thread
 import kotlin.math.max
+import kotlin.system.exitProcess
 
 object MediaLibrary
 {
@@ -39,7 +39,7 @@ object MediaLibrary
             playlists.asSequence().filter {it.dirty}.forEach {it.save(playlistDirectory)}
         })
         
-        recentPlaylists.addListener(InvalidationListener {_ ->
+        recentPlaylists.addListener(InvalidationListener {
             if(recentPlaylists.size > 5)
                 recentPlaylists.removeAt(recentPlaylists.lastIndex)
         })
@@ -86,7 +86,7 @@ object MediaLibrary
                 MissingSongStrategy.REMOVE -> libraryDirty = true
                 MissingSongStrategy.EXIT -> {
                     libraryDirty = false
-                    System.exit(0)
+                    exitProcess(0)
                 }
                 MissingSongStrategy.IGNORE -> {
                     notFoundUris.forEach {(uuid, uri) -> addSong(NOPAudioSource(uri, uuid))}
@@ -103,7 +103,7 @@ object MediaLibrary
         }
     }
     
-    fun testUri(uri: URI): Boolean
+    private fun testUri(uri: URI): Boolean
     {
         return if(uri.scheme.equals("file", true))
             File(uri).exists()
@@ -155,7 +155,7 @@ object MediaLibrary
         return playlist
     }
     
-    fun isPlaylistLoaded(name: String) = playlists.any {it.name.equals(name, true)}
+    private fun isPlaylistLoaded(name: String) = playlists.any {it.name.equals(name, true)}
     
     fun removePlaylist(playlist: Playlist)
     {
