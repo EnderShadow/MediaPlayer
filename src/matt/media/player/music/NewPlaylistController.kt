@@ -47,7 +47,7 @@ class NewPlaylistController
                 tempFile.createNewFile()
                 tempFile.delete()
                 
-                createdPlaylist = Playlist(name)
+                createdPlaylist = Playlist(name, playlistDescription.text)
                 window.hide()
             }
             catch(_: Exception)

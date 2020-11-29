@@ -12,7 +12,7 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
 
-class Playlist(name: String): Observable, InvalidationListener
+class Playlist(name: String, description: String): Observable, InvalidationListener
 {
     // Playlist extension
     companion object
@@ -29,6 +29,11 @@ class Playlist(name: String): Observable, InvalidationListener
         get() = nameProperty.value
         set(value) = nameProperty.set(value)
     
+    val descriptionProperty = SimpleStringProperty(description)
+    var description: String
+        get() = descriptionProperty.value
+        set(value) = descriptionProperty.set(value)
+    
     // This is used to keep track of the playlists and songs inside this playlist
     private val contents = FXCollections.observableArrayList<MediaHandle>()
     val media: ObservableList<MediaHandle> = FXCollections.unmodifiableObservableList(contents)
@@ -36,7 +41,7 @@ class Playlist(name: String): Observable, InvalidationListener
     private val playlists = mutableListOf<Playlist>()
     var dirty = true
     
-    constructor(path: Path): this(path.nameWithoutExtension)
+    constructor(path: Path): this(path.nameWithoutExtension, "")
     {
         Files.lines(path).forEach {
             when
