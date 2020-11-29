@@ -11,7 +11,7 @@ object Player
 {
     // Stacks used for keeping track of current position in queue
     // A stack structure is used since playlists may contain other playlists
-    val rootQueuePlaylist = Playlist("")
+    val rootQueuePlaylist = Playlist("", "")
     val flatQueue = rootQueuePlaylist.flatView
     private val playlistStack = LinkedList(listOf(rootQueuePlaylist))
     private val mediaIndexStack = LinkedList(listOf(0))
