@@ -8,16 +8,19 @@ import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.scene.media.MediaPlayer
 import matt.media.player.music.PlaylistTabController
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
+import java.nio.file.*
 import java.util.*
 import kotlin.ConcurrentModificationException
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.system.exitProcess
+
+private const val LIBRARY_FORMAT_VERSION = "1.0"
 
 object MediaLibrary
 {
@@ -55,15 +58,13 @@ object MediaLibrary
     
     fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}
     
-    fun loadSongs()
+    private fun loadSongsLegacy()
     {
         val notFoundUris = mutableListOf<Pair<UUID, URI>>()
         Files.lines(libraryFile).forEach {
-            if(it.isNotBlank())
-            {
+            if(it.isNotBlank()) {
                 val (uuid, uriPath) = it.split(" ", limit = 2)
-                try
-                {
+                try {
                     val uri = URI(uriPath)
                     if(isValidAudioFile(uri))
                         if(testUri(uri))
@@ -71,18 +72,15 @@ object MediaLibrary
                         else
                             notFoundUris.add(Pair(UUID.fromString(uuid), uri))
                 }
-                catch(_: IllegalArgumentException)
-                {
+                catch(_: IllegalArgumentException) {
                     println("Failed to load song. Maybe it's not a song?: $uriPath")
                 }
             }
         }
-        if(notFoundUris.isNotEmpty())
-        {
+        if(notFoundUris.isNotEmpty()) {
             val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
             alertBox.showAndWait()
-            when(alertBox.returnValue ?: MissingSongStrategy.IGNORE)
-            {
+            when(alertBox.returnValue ?: MissingSongStrategy.IGNORE) {
                 MissingSongStrategy.REMOVE -> libraryDirty = true
                 MissingSongStrategy.EXIT -> {
                     libraryDirty = false
@@ -97,8 +95,64 @@ object MediaLibrary
                 }
             }
         }
-        else
-        {
+        else {
+            libraryDirty = false
+        }
+    }
+    
+    fun loadSongs() {
+        // check for existing or empty library file
+        if(Files.notExists(libraryFile) || Files.size(libraryFile) == 0L)
+            return
+        
+        // check for legacy library
+        if(Files.newBufferedReader(libraryFile).use {it.read().toChar()} != '{') {
+            println("Legacy library detected. Converting to JSON library")
+            loadSongsLegacy()
+            libraryDirty = true
+            flushLibrary()
+            return
+        }
+        
+        val notFoundUris = mutableListOf<Pair<UUID, URI>>()
+        val libraryJson = JSONObject(String(Files.readAllBytes(libraryFile)))
+        val libraryVersion = libraryJson.getString("version")
+        val songsListJson = libraryJson.getJSONArray("songs")
+        songsListJson.forEach {
+            val songJson = it as JSONObject
+            try {
+                val uuid = UUID.fromString(songJson.getString("uuid"))
+                val uri = URI(songJson.getString("uri"))
+            
+                if(isValidAudioFile(uri))
+                    if(testUri(uri))
+                        addSong(AudioSource.create(uri, uuid))
+                    else
+                        notFoundUris.add(Pair(uuid, uri))
+            }
+            catch(_: IllegalArgumentException) {
+                println("Failed to load song. Maybe it's not a song?: ${songJson.getString("uri")}")
+            }
+        }
+        if(notFoundUris.isNotEmpty()) {
+            val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
+            alertBox.showAndWait()
+            when(alertBox.returnValue ?: MissingSongStrategy.IGNORE) {
+                MissingSongStrategy.REMOVE -> libraryDirty = true
+                MissingSongStrategy.EXIT -> {
+                    libraryDirty = false
+                    exitProcess(0)
+                }
+                MissingSongStrategy.IGNORE -> {
+                    notFoundUris.forEach {(uuid, uri) -> addSong(NOPAudioSource(uri, uuid))}
+                    libraryDirty = false
+                }
+                MissingSongStrategy.LOCATE -> {
+                    // TODO have user locate songs
+                }
+            }
+        }
+        else {
             libraryDirty = false
         }
     }
@@ -223,10 +277,22 @@ object MediaLibrary
     
     fun flushLibrary()
     {
-        if(libraryDirty)
-        {
-            Files.write(libraryFile, songs.map {"${it.uuid} ${it.location}"}, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
-            libraryDirty = false
+        if(!libraryDirty)
+            return
+        
+        val songListJson = JSONArray()
+        songs.forEach {
+            val songJson = JSONObject()
+            songJson["uuid"] = it.uuid.toString()
+            songJson["uri"] = it.location.toString()
+            songListJson.put(songJson)
         }
+        val libraryJson = JSONObject()
+        libraryJson.put("version", LIBRARY_FORMAT_VERSION)
+        libraryJson.put("songs", songListJson)
+        
+        Files.move(libraryFile, Paths.get(libraryFile.parent.toString(), "${libraryFile.fileName}.old"), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        Files.write(libraryFile, libraryJson.toString().toByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+        libraryDirty = false
     }
 }
