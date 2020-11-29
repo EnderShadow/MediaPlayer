@@ -112,7 +112,7 @@ fun <T> getVisible(tableView: TableView<T>): List<T>
     visibleRowIndices.sort()
     
     val firstIndex = visibleRowIndices.firstOrNull() ?: -1
-    val lastIndex = visibleRowIndices.lastOrNull() ?: -1
+    val lastIndex = visibleRowIndices.lastOrNull()?.coerceAtMost(tableView.items.size - 1) ?: -1
     
     if(firstIndex == -1 || lastIndex == -1)
         return emptyList()
