@@ -4,22 +4,17 @@ import javafx.application.Platform
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
 import javafx.scene.image.Image
-import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import java.io.*
-import java.lang.IllegalArgumentException
 import java.net.URI
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
-abstract class AudioSource(val location: URI, val uuid: UUID)
+abstract class AudioSource(val location: URI, val uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration)
 {
     companion object
     {
@@ -84,55 +79,22 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
             }
         }
         
-        /**
-         * Creates an instance of AudioSource based on the provided uri
-         */
-        fun create(uri: URI, uuid: UUID? = null): AudioSource
-        {
-            @Suppress("NAME_SHADOWING")
-            val uuid = uuid ?: UUID.randomUUID()
-            
-            if(VLCAudioSource.isSupported(uri))
-            {
-                try
-                {
-                    val vlcas = VLCAudioSource(uri, uuid) as AudioSource
-                    if(!vlcas.loaded)
-                        vlcas.init()
-                    return vlcas
-                }
-                catch(e: Exception) {}
-            }
-            if(JavaFXAudioSource.isSupported(uri))
-            {
-                try
-                {
-                    val jfxas = JavaFXAudioSource(uri, uuid) as AudioSource
-                    if(!jfxas.loaded)
-                        jfxas.init()
-                    return jfxas
-                }
-                catch(me: MediaException) {}
-            }
-            throw IllegalArgumentException("Unsupported audio format: $uri")
-        }
-        
         private fun loadImage(audioSource: AudioSource, imageProperty: SimpleObjectProperty<Image>)
         {
             imageLoadQueue.add(Pair(audioSource, imageProperty))
         }
     }
     
-    val titleProperty = SimpleStringProperty(if(isFile(location)) File(location).nameWithoutExtension else "Unknown")
-    val artistProperty = SimpleStringProperty("Unknown")
-    val albumProperty = SimpleStringProperty("Unknown")
-    val genreProperty = SimpleStringProperty("")
-    val albumArtistProperty = SimpleStringProperty("")
+    val titleProperty = SimpleStringProperty(title)
+    val artistProperty = SimpleStringProperty(artist)
+    val albumProperty = SimpleStringProperty(album)
+    val genreProperty = SimpleStringProperty(genre)
+    val albumArtistProperty = SimpleStringProperty(albumArtist)
     val imageProperty = SimpleObjectProperty(defaultImage)
-    val trackCountProperty = SimpleIntegerProperty(0)
-    val trackNumberProperty = SimpleIntegerProperty(0)
-    val yearProperty = SimpleStringProperty("")
-    val durationProperty = SimpleObjectProperty(Duration.ZERO)
+    val trackCountProperty = SimpleIntegerProperty(trackCount)
+    val trackNumberProperty = SimpleIntegerProperty(trackNumber)
+    val yearProperty = SimpleStringProperty(year)
+    val durationProperty = SimpleObjectProperty(duration)
     val currentTimeProperty = SimpleObjectProperty(Duration.ZERO)
     val statusProperty = SimpleObjectProperty(MediaPlayer.Status.UNKNOWN)
     
@@ -144,99 +106,26 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
         protected set
         get() = if(!initializing) field else ({})
     
-    protected var loaded = false
-    
-    private val metadataFile = mediaDirectory.resolve("$uuid.metadata")
-    
     init
     {
-        if(Files.exists(metadataFile)) try
-        {
-            DataInputStream(Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()).use {
-                titleProperty.value = it.readUTF()
-                artistProperty.value = it.readUTF()
-                albumProperty.value = it.readUTF()
-                genreProperty.value = it.readUTF()
-                albumArtistProperty.value = it.readUTF()
-                trackCountProperty.value = it.readInt()
-                trackNumberProperty.value = it.readInt()
-                yearProperty.value = it.readUTF()
-                durationProperty.value = Duration.millis(it.readDouble())
-            }
-            loaded = true
+        val metadataChangeListener = ChangeListener<Any> {_, old, new ->
+            if(old != new && new != null)
+                MediaLibrary.markDirty()
         }
-        catch(ioe: IOException)
-        {
-            System.err.println("Failed to read song metadata from file")
-        }
+    
+        titleProperty.addListener(metadataChangeListener)
+        artistProperty.addListener(metadataChangeListener)
+        albumProperty.addListener(metadataChangeListener)
+        genreProperty.addListener(metadataChangeListener)
+        albumArtistProperty.addListener(metadataChangeListener)
+        trackCountProperty.addListener(metadataChangeListener)
+        trackNumberProperty.addListener(metadataChangeListener)
+        yearProperty.addListener(metadataChangeListener)
+        durationProperty.addListener(metadataChangeListener)
         
         @Suppress("LeakingThis")
         if(this !is NOPAudioSource)
         {
-            val metadataChangeListener = ChangeListener<Any> {_, old, new ->
-                if(old != new && new != null) try
-                {
-                    // Prevents write attempts from overlapping
-                    synchronized(location) {
-                        DataOutputStream(Files.newOutputStream(metadataFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).buffered()).use {
-                            it.writeUTF(titleProperty.value)
-                            it.writeUTF(artistProperty.value)
-                            it.writeUTF(albumProperty.value)
-                            it.writeUTF(genreProperty.value)
-                            it.writeUTF(albumArtistProperty.value)
-                            it.writeInt(trackCountProperty.value)
-                            it.writeInt(trackNumberProperty.value)
-                            it.writeUTF(yearProperty.value)
-                            it.writeDouble(durationProperty.value.toMillis())
-                        }
-                    }
-                }
-                catch(ioe: IOException)
-                {
-                    System.err.println("Failed to write song metadata to file")
-                }
-            }
-    
-            titleProperty.addListener(metadataChangeListener)
-            artistProperty.addListener(metadataChangeListener)
-            albumProperty.addListener(metadataChangeListener)
-            genreProperty.addListener(metadataChangeListener)
-            albumArtistProperty.addListener(metadataChangeListener)
-            trackCountProperty.addListener(metadataChangeListener)
-            trackNumberProperty.addListener(metadataChangeListener)
-            yearProperty.addListener(metadataChangeListener)
-            durationProperty.addListener(metadataChangeListener)
-    
-            if(!loaded && isFile(location))
-            {
-                val audioFile = AudioFileIO.read(File(location))
-        
-                val header = audioFile.audioHeader
-                durationProperty.value = Duration.seconds(header.preciseTrackLength)
-                val tag = audioFile.tagOrCreateAndSetDefault
-        
-                tag.getFirst(FieldKey.TITLE).let {
-                    if(it.isNotBlank())
-                    {
-                        titleProperty.value = it
-                    }
-                    else
-                    {
-                        tag.setField(FieldKey.TITLE, titleProperty.value)
-                        audioFile.commit()
-                    }
-                }
-                tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
-                tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
-                tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
-                tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
-                tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
-                tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
-                tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
-        
-                loaded = true
-            }
-    
             loadImage = {
                 loadImage = {}
                 loadImage(this, imageProperty)
@@ -244,9 +133,29 @@ abstract class AudioSource(val location: URI, val uuid: UUID)
         }
     }
     
-    fun deleteMetadata()
-    {
-        Files.deleteIfExists(metadataFile)
+    fun readMetadataFromSource() {
+        if(isFile(location))
+        {
+            val audioFile = AudioFileIO.read(File(location))
+        
+            val header = audioFile.audioHeader
+            durationProperty.value = Duration.seconds(header.preciseTrackLength)
+            val tag = audioFile.tagOrCreateAndSetDefault
+        
+            tag.getFirst(FieldKey.TITLE).let {
+                if(it.isNotBlank())
+                    titleProperty.value = it
+            }
+            tag.getFirst(FieldKey.ARTIST).let {if(it.isNotBlank()) artistProperty.value = it}
+            tag.getFirst(FieldKey.ALBUM).let {if(it.isNotBlank()) albumProperty.value = it}
+            tag.getFirst(FieldKey.GENRE).let {if(it.isNotBlank()) genreProperty.value = it}
+            tag.getFirst(FieldKey.ALBUM_ARTIST).let {if(it.isNotBlank()) albumArtistProperty.value = it}
+            tag.getFirst(FieldKey.TRACK_TOTAL).let {if(it.isNotBlank()) trackCountProperty.value = it.toInt()}
+            tag.getFirst(FieldKey.TRACK).let {if(it.isNotBlank()) trackNumberProperty.value = it.toInt()}
+            tag.getFirst(FieldKey.YEAR).let {if(it.isNotBlank()) yearProperty.value = it}
+            
+            MediaLibrary.markDirty()
+        }
     }
     
     protected abstract fun init()

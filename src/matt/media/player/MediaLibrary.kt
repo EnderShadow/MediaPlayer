@@ -7,10 +7,13 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.scene.media.MediaPlayer
+import javafx.util.Duration
 import matt.media.player.music.PlaylistTabController
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.DataInputStream
 import java.io.File
+import java.io.IOException
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.nio.file.*
@@ -20,7 +23,7 @@ import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.system.exitProcess
 
-private const val LIBRARY_FORMAT_VERSION = "1.0"
+private const val LIBRARY_FORMAT_VERSION = "1.1"
 
 object MediaLibrary
 {
@@ -58,75 +61,64 @@ object MediaLibrary
     
     fun refreshPlaylistIcons() = playlistIcons.forEach {it.invalidated(null)}
     
-    private fun loadSongsLegacy()
-    {
-        val notFoundUris = mutableListOf<Pair<UUID, URI>>()
-        Files.lines(libraryFile).forEach {
-            if(it.isNotBlank()) {
-                val (uuid, uriPath) = it.split(" ", limit = 2)
-                try {
-                    val uri = URI(uriPath)
-                    if(isValidAudioFile(uri))
-                        if(testUri(uri))
-                            addSong(AudioSource.create(uri, UUID.fromString(uuid)))
-                        else
-                            notFoundUris.add(Pair(UUID.fromString(uuid), uri))
-                }
-                catch(_: IllegalArgumentException) {
-                    println("Failed to load song. Maybe it's not a song?: $uriPath")
-                }
-            }
-        }
-        if(notFoundUris.isNotEmpty()) {
-            val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
-            alertBox.showAndWait()
-            when(alertBox.returnValue ?: MissingSongStrategy.IGNORE) {
-                MissingSongStrategy.REMOVE -> libraryDirty = true
-                MissingSongStrategy.EXIT -> {
-                    libraryDirty = false
-                    exitProcess(0)
-                }
-                MissingSongStrategy.IGNORE -> {
-                    notFoundUris.forEach {(uuid, uri) -> addSong(NOPAudioSource(uri, uuid))}
-                    libraryDirty = false
-                }
-                MissingSongStrategy.LOCATE -> {
-                    // TODO have user locate songs
-                }
-            }
-        }
-        else {
-            libraryDirty = false
-        }
-    }
-    
     fun loadSongs() {
         // check for existing or empty library file
         if(Files.notExists(libraryFile) || Files.size(libraryFile) == 0L)
             return
         
-        // check for legacy library
-        if(Files.newBufferedReader(libraryFile).use {it.read().toChar()} != '{') {
-            println("Legacy library detected. Converting to JSON library")
-            loadSongsLegacy()
-            libraryDirty = true
-            flushLibrary()
-            return
-        }
-        
         val notFoundUris = mutableListOf<Pair<UUID, URI>>()
         val libraryJson = JSONObject(String(Files.readAllBytes(libraryFile)))
         val libraryVersion = libraryJson.getString("version")
+        
         val songsListJson = libraryJson.getJSONArray("songs")
         songsListJson.forEach {
             val songJson = it as JSONObject
             try {
                 val uuid = UUID.fromString(songJson.getString("uuid"))
                 val uri = URI(songJson.getString("uri"))
-            
+                
+                val audioSourceFactory = AudioSourceFactory(uri, uuid)
+                
+                if(libraryVersion < "1.1") {
+                    val metadataFile = mediaDirectory.resolve("$uuid.metadata")
+    
+                    if(Files.exists(metadataFile)) try
+                    {
+                        DataInputStream(Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()).use {dataInputStream ->
+                            audioSourceFactory.title = dataInputStream.readUTF()
+                            audioSourceFactory.artist = dataInputStream.readUTF()
+                            audioSourceFactory.album = dataInputStream.readUTF()
+                            audioSourceFactory.genre = dataInputStream.readUTF()
+                            audioSourceFactory.albumArtist = dataInputStream.readUTF()
+                            audioSourceFactory.trackCount = dataInputStream.readInt()
+                            audioSourceFactory.trackNumber = dataInputStream.readInt()
+                            audioSourceFactory.year = dataInputStream.readUTF()
+                            audioSourceFactory.duration = Duration.millis(dataInputStream.readDouble())
+                        }
+                        
+                        Files.delete(metadataFile)
+                        markDirty()
+                    }
+                    catch(ioe: IOException)
+                    {
+                        System.err.println("Failed to read song metadata from file")
+                    }
+                }
+                else {
+                    audioSourceFactory.title = songJson.getString("title")
+                    audioSourceFactory.artist = songJson.getString("artist")
+                    audioSourceFactory.album = songJson.getString("album")
+                    audioSourceFactory.genre = songJson.getString("genre")
+                    audioSourceFactory.albumArtist = songJson.getString("albumArtist")
+                    audioSourceFactory.trackCount = songJson.getInt("trackCount")
+                    audioSourceFactory.trackNumber = songJson.getInt("trackNumber")
+                    audioSourceFactory.year = songJson.getString("year")
+                    audioSourceFactory.duration = Duration.millis(songJson.getDouble("duration"))
+                }
+                
                 if(isValidAudioFile(uri))
                     if(testUri(uri))
-                        addSong(AudioSource.create(uri, uuid))
+                        addSong(audioSourceFactory.build())
                     else
                         notFoundUris.add(Pair(uuid, uri))
             }
@@ -138,22 +130,39 @@ object MediaLibrary
             val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
             alertBox.showAndWait()
             when(alertBox.returnValue ?: MissingSongStrategy.IGNORE) {
-                MissingSongStrategy.REMOVE -> libraryDirty = true
+                MissingSongStrategy.REMOVE -> markDirty()
                 MissingSongStrategy.EXIT -> {
                     libraryDirty = false
                     exitProcess(0)
                 }
                 MissingSongStrategy.IGNORE -> {
-                    notFoundUris.forEach {(uuid, uri) -> addSong(NOPAudioSource(uri, uuid))}
-                    libraryDirty = false
+                    notFoundUris.forEach {(uuid, uri) ->
+                        val metadataFile = mediaDirectory.resolve("$uuid.metadata")
+        
+                        if(Files.exists(metadataFile)) {
+                            try {
+                                DataInputStream(
+                                    Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()
+                                ).use {dataInputStream ->
+                                    addSong(NOPAudioSource(uri, uuid, dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readUTF(),
+                                        dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readInt(), dataInputStream.readInt(),
+                                        dataInputStream.readUTF(), Duration.millis(dataInputStream.readDouble())))
+                                }
+                
+                                Files.delete(metadataFile)
+                            } catch(ioe: IOException) {
+                                System.err.println("Failed to read song metadata from file")
+                            }
+                        }
+                        else {
+                            addSong(NOPAudioSource(uri, uuid))
+                        }
+                    }
                 }
                 MissingSongStrategy.LOCATE -> {
                     // TODO have user locate songs
                 }
             }
-        }
-        else {
-            libraryDirty = false
         }
     }
     
@@ -177,7 +186,7 @@ object MediaLibrary
     {
         songs.add(song)
         songUUIDMap[song.uuid] = song
-        libraryDirty = true
+        markDirty()
     }
     
     fun loadPlaylists()
@@ -264,15 +273,19 @@ object MediaLibrary
         
         songs.remove(audioSource)
         songUUIDMap.remove(audioSource.uuid)
-        audioSource.deleteMetadata()
         if(!DEBUG)
         {
-            libraryDirty = true
+            markDirty()
         }
         else
         {
             println("$audioSource would have been deleted if debug mode was off")
         }
+    }
+    
+    
+    fun markDirty() {
+        libraryDirty = true
     }
     
     fun flushLibrary()
@@ -285,6 +298,15 @@ object MediaLibrary
             val songJson = JSONObject()
             songJson["uuid"] = it.uuid.toString()
             songJson["uri"] = it.location.toString()
+            songJson["title"] = it.titleProperty.value
+            songJson["artist"] = it.artistProperty.value
+            songJson["album"] = it.albumProperty.value
+            songJson["genre"] = it.genreProperty.value
+            songJson["albumArtist"] = it.albumArtistProperty.value
+            songJson["trackCount"] = it.trackCountProperty.value
+            songJson["trackNumber"] = it.trackNumberProperty.value
+            songJson["year"] = it.yearProperty.value
+            songJson["duration"] = it.durationProperty.value.toMillis()
             songListJson.put(songJson)
         }
         val libraryJson = JSONObject()

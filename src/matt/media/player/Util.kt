@@ -209,7 +209,7 @@ val playlistDirectory: Path
     get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("Playlists")
 
 val libraryFile: Path
-    get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("library.txt")
+    get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("library.json")
 
 val Path.extension: String
     get() = toString().substringAfterLast('.', "")

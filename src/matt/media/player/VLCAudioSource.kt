@@ -16,7 +16,7 @@ import java.net.URI
 import java.util.*
 import kotlin.math.roundToInt
 
-class VLCAudioSource(location: URI, uuid: UUID): AudioSource(location, uuid)
+class VLCAudioSource(location: URI, uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
 {
     companion object
     {

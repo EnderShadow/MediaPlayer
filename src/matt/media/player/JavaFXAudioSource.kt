@@ -9,7 +9,7 @@ import javafx.util.Duration
 import java.net.URI
 import java.util.*
 
-class JavaFXAudioSource(location: URI, uuid: UUID): AudioSource(location, uuid)
+class JavaFXAudioSource(location: URI, uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
 {
     companion object
     {

@@ -29,6 +29,7 @@ import javafx.util.Callback
 import javafx.util.Duration
 import matt.media.player.music.NewPlaylistController
 import org.controlsfx.control.PopOver
+import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
 
@@ -274,7 +275,9 @@ class Controller
             if(isValidAudioFile(uri) && uri !in MediaLibrary.songs.map {it.location})
                 try
                 {
-                    MediaLibrary.addSong(AudioSource.create(uri))
+                    val audioSource = AudioSourceFactory(uri).build()
+                    audioSource.readMetadataFromSource()
+                    MediaLibrary.addSong(audioSource)
                 }
                 catch(_: IllegalArgumentException)
                 {
@@ -291,7 +294,9 @@ class Controller
             it.walkTopDown().asSequence().filter {it.isFile && isValidAudioFile(it.toURI()) && it.toURI() !in MediaLibrary.songs.map {it.location}}.forEach {
                 try
                 {
-                    MediaLibrary.addSong(AudioSource.create(it.toURI()))
+                    val audioSource = AudioSourceFactory(it.toURI()).build()
+                    audioSource.readMetadataFromSource()
+                    MediaLibrary.addSong(audioSource)
                 }
                 catch(_: IllegalArgumentException)
                 {

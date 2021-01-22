@@ -60,7 +60,7 @@ object Player
                 if(!rootQueuePlaylist.isRecursivelyEmpty())
                 {
                     // check if we're at a valid song. If not, find one
-                    if(playlistStack.peek().media[mediaIndexStack.peek()] !is SongHandle)
+                    if(mediaIndexStack.peek() < playlistStack.peek().media.size && playlistStack.peek().media[mediaIndexStack.peek()] !is SongHandle)
                     {
                         next()
                     }
@@ -200,14 +200,17 @@ object Player
     {
         currentlyPlaying.value?.getCurrentAudioSource()?.let {
             // If more than 3 seconds have elapsed from the start of the song restart the song
-            if(it.currentTimeProperty.value.toSeconds() > 3.0)
-            {
+            if(it.currentTimeProperty.value.toSeconds() > 3.0) {
                 it.seek(Duration.ZERO)
             }
-            else // Less than 3 seconds have elapsed since the start of the song
-            {
+            else {
+                // Less than 3 seconds have elapsed since the start of the song
+                stop(false)
+                
                 // Go to the previous song
                 previousSong()
+                
+                play()
             }
         } ?: previousSong()
     }
@@ -251,7 +254,7 @@ object Player
         }
         
         // We are at the beginning of the queue
-        next()
+        //next() // I have no clue why this is here
     }
     
     fun volume(newVolume: Double)
@@ -326,7 +329,7 @@ object Player
     fun prepareForAdditionOfMediaAtInPlaylist(indexToInsertAt: Int, playlistToAddTo: Playlist)
     {
         playlistStack.indices.filter {playlistStack[it] == playlistToAddTo}.forEach {
-            if(mediaIndexStack[it] <= indexToInsertAt)
+            if(mediaIndexStack[it] >= indexToInsertAt)
                 mediaIndexStack[it]++
         }
     }
