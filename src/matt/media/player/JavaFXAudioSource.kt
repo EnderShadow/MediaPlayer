@@ -2,12 +2,15 @@ package matt.media.player
 
 import javafx.beans.InvalidationListener
 import javafx.collections.MapChangeListener
+import javafx.embed.swing.SwingFXUtils
 import javafx.scene.image.Image
 import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
 import java.net.URI
+import java.nio.file.Files
 import java.util.*
+import javax.imageio.ImageIO
 
 class JavaFXAudioSource(location: URI, uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
 {
@@ -53,7 +56,17 @@ class JavaFXAudioSource(location: URI, uuid: UUID, title: String, artist: String
                         "album" -> albumProperty.set(change.valueAdded as String)
                         "genre" -> genreProperty.set(change.valueAdded as String)
                         "album artist" -> albumArtistProperty.set(change.valueAdded as String)
-                        "image" -> imageProperty.set(squareAndCache(change.valueAdded as Image))
+                        "image" -> {
+                            val fxImage = change.valueAdded as Image
+                            val imageCache = cachePath.resolve("artwork/$uuid.png")
+                            if(Files.notExists(imageCache)) {
+                                Files.createDirectories(imageCache.parent)
+                                ioThreadPool.submit {
+                                    ImageIO.write(SwingFXUtils.fromFXImage(fxImage, null), "png", imageCache.toFile())
+                                }
+                            }
+                            imageProperty.set(squareAndCache(fxImage))
+                        }
                         "track count" -> trackCountProperty.set(change.valueAdded as Int)
                         "track number" -> trackNumberProperty.set(change.valueAdded as Int)
                         "year" -> yearProperty.set(change.valueAdded.toString())

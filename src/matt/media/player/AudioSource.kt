@@ -3,6 +3,7 @@ package matt.media.player
 import javafx.application.Platform
 import javafx.beans.property.*
 import javafx.beans.value.ChangeListener
+import javafx.embed.swing.SwingFXUtils
 import javafx.scene.image.Image
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
@@ -10,8 +11,10 @@ import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import java.io.*
 import java.net.URI
+import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import javax.imageio.ImageIO
 import kotlin.concurrent.thread
 
 abstract class AudioSource(val location: URI, val uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration)
@@ -21,39 +24,40 @@ abstract class AudioSource(val location: URI, val uuid: UUID, title: String, art
         private val activeSources = LinkedList<AudioSource>()
         private val imageLoadQueue = ConcurrentLinkedQueue<Pair<AudioSource, SimpleObjectProperty<Image>>>()
         
-        init
-        {
+        init {
             thread(start = true, isDaemon = true, name = "Image Loading Thread") {
-                while(true)
-                {
+                while(true) {
                     val imageToLoad = imageLoadQueue.poll()
-                    if(imageToLoad != null)
-                    {
+                    if(imageToLoad != null) {
                         val (audioSource, imageProperty) = imageToLoad
-                        try
-                        {
-                            val artworkData = AudioFileIO.read(File(audioSource.location)).tagOrCreateAndSetDefault.artworkList.firstOrNull {it != null}?.binaryData
-                            if(artworkData != null)
-                            {
-                                val image = Image(ByteArrayInputStream(artworkData))
-                                if(image.exception == null)
-                                {
-                                    val squaredImage = squareAndCache(image)
-                                    Platform.runLater {imageProperty.value = squaredImage}
+                        val imageCache = cachePath.resolve("artwork/${audioSource.uuid}.png")
+                        if(Files.exists(imageCache)) {
+                            val image = squareAndCache(SwingFXUtils.toFXImage(ImageIO.read(imageCache.toFile()), null))
+                            Platform.runLater {imageProperty.value = image}
+                        }
+                        else {
+                            Files.createDirectories(imageCache.parent)
+                            try {
+                                val artworkData = AudioFileIO.read(File(audioSource.location)).tagOrCreateAndSetDefault.artworkList.firstOrNull {it != null}?.binaryData
+                                if(artworkData != null) {
+                                    val rawImage = ImageIO.read(ByteArrayInputStream(artworkData))
+                                    ioThreadPool.submit {
+                                        ImageIO.write(rawImage, "png", imageCache.toFile())
+                                    }
+                                    val image = SwingFXUtils.toFXImage(rawImage, null)
+                                    if(image.exception == null) {
+                                        val squaredImage = squareAndCache(image)
+                                        Platform.runLater {imageProperty.value = squaredImage}
+                                    } else {
+                                        Platform.runLater(audioSource::init)
+                                    }
                                 }
-                                else
-                                {
-                                    Platform.runLater(audioSource::init)
-                                }
+                            } catch(e: Exception) {
+                                Platform.runLater(audioSource::init)
                             }
                         }
-                        catch(e: Exception)
-                        {
-                            Platform.runLater(audioSource::init)
-                        }
                     }
-                    else
-                    {
+                    else {
                         Thread.yield()
                     }
                 }

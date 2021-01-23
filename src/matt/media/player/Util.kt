@@ -15,6 +15,10 @@ import java.io.IOException
 import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.math.round
 
@@ -45,6 +49,8 @@ fun isValidFilename(filename: String): Boolean
         false
     }
 }
+
+val ioThreadPool = Executors.newSingleThreadExecutor {thread(start = false, isDaemon = true, block = it::run)}
 
 val tempDirectory = File(System.getProperty("java.io.tmpdir"))
 
@@ -210,6 +216,8 @@ val playlistDirectory: Path
 
 val libraryFile: Path
     get() = Config.getPath(ConfigKey.DATA_DIRECTORY).resolve("library.json")
+
+val cachePath = Paths.get("${System.getProperty("user.home")}/.cache/Media Player")
 
 val Path.extension: String
     get() = toString().substringAfterLast('.', "")

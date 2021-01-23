@@ -13,7 +13,6 @@ class NOPAudioSource(location: URI, uuid: UUID, title: String, artist: String, a
         set(_) {}
     
     override fun init() {}
-    
     override fun dispose() {}
     override fun play() {}
     override fun pause() {}
