@@ -1,6 +1,7 @@
 package matt.media.player
 
 import javafx.util.Duration
+import org.freedesktop.gstreamer.Gst
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
@@ -18,6 +19,9 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
             
             if(VLCAudioSource.vlcDetected())
                 registerBacker(0, {VLCAudioSource.isSupported(it)}, ::VLCAudioSource)
+            
+            if(GSTAudioSource.gstDetected())
+                registerBacker(-1, {GSTAudioSource.isSupported(it)}, ::GSTAudioSource)
         }
         
         fun registerBacker(priority: Int, isSupported: (URI) -> Boolean, constructor: (URI, UUID, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource) {
