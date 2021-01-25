@@ -78,11 +78,13 @@ class Controller
         playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
         
         val timeChangeListener = InvalidationListener {
-            if(!playbackLocationSlider.isValueChanging && Player.currentlyPlaying.value is SongHandle)
+            if(Player.currentlyPlaying.value is SongHandle)
             {
-                playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
-                    it.currentTimeProperty.value.toMillis() / it.durationProperty.value.toMillis()
-                } ?: 0.0
+                if(!playbackLocationSlider.isValueChanging) {
+                    playbackLocationSlider.valueProperty().value = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
+                        it.currentTimeProperty.value.toMillis() / it.durationProperty.value.toMillis()
+                    } ?: 0.0
+                }
                 currentTime.text = Player.currentlyPlaying.value?.getCurrentAudioSource()?.let {
                     "${formatDuration(it.currentTimeProperty.value)} / ${formatDuration(it.durationProperty.value)}"
                 } ?: "0:00:00 / 0:00:00"
@@ -102,10 +104,7 @@ class Controller
             timeChangeListener.invalidated(null)
         }
         playbackLocationSlider.disableProperty().bind(Player.currentlyPlaying.isNull)
-        playbackLocationSlider.setOnMousePressed {Player.pause()}
         playbackLocationSlider.setOnMouseReleased {
-            Player.play()
-            Player.currentlyPlaying.value!!.getCurrentAudioSource().run {seek(durationProperty.value.multiply(playbackLocationSlider.value))}
             playButtonIcon.requestFocus()
         }
         playbackLocationSlider.valueChangingProperty().addListener(InvalidationListener {
