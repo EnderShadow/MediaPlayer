@@ -1,6 +1,5 @@
 package matt.media.player
 
-import javafx.scene.media.MediaException
 import javafx.util.Duration
 import java.io.File
 import java.lang.IllegalArgumentException
@@ -14,8 +13,11 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
         }
         
         init {
+            // JavaFX media is always supported
             registerBacker(Int.MAX_VALUE, {JavaFXAudioSource.isSupported(it)}, ::JavaFXAudioSource)
-            registerBacker(0, {VLCAudioSource.isSupported(it)}, ::VLCAudioSource)
+            
+            if(VLCAudioSource.vlcDetected())
+                registerBacker(0, {VLCAudioSource.isSupported(it)}, ::VLCAudioSource)
         }
         
         fun registerBacker(priority: Int, isSupported: (URI) -> Boolean, constructor: (URI, UUID, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource) {
