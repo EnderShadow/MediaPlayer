@@ -169,7 +169,6 @@ object Player
             val foundMedia = currentPlaylist.media[nextIndex]
             if(foundMedia is SongHandle)
             {
-                if(status == Status.PLAYING)
                 stop(false)
                 if(playAfterFind)
                     play()
