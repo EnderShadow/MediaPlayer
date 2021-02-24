@@ -15,7 +15,6 @@ Currently requires you to use JRE/JDK 8
 - Add support for copying/moving media to the media player directory
 - Add support for automatically adding songs in the media player directory to the library
 - Add support for exporting/importing media library/playlists
-  - Switch the library from a proprietary format to JSON
   - Switch the playlist from a proprietary format to JSON
 - Add detection of playlists with song UUIDs that are not in the library
 - Finish UI for locating missing songs
