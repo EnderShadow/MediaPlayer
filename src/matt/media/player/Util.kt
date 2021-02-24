@@ -33,7 +33,7 @@ val defaultImage by lazy {Image(MethodHandles.lookup().lookupClass().classLoader
 val validAudioExtensions = listOf(".asf", ".au", ".ogm", ".ogg", ".mka", ".ts", ".mpg", ".mp3", ".mp2", ".nsc", ".nut", ".a52", ".dts",
         ".aac", ".flac", ".dv", ".vid", ".tta", ".tac", ".ty", ".wav", ".dts", ".xa", ".aif", ".aiff", ".m4a")
 
-fun isValidAudioFile(uri: URI) = validAudioExtensions.any {uri.path.endsWith(it, true)}
+fun isValidAudioUri(uri: URI) = validAudioExtensions.any {uri.path.endsWith(it, true)}
 
 fun isFile(uri: URI) = uri.isAbsolute && uri.scheme.equals("file", true) || uri.toURL().protocol.equals("file", true)
 

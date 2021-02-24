@@ -46,7 +46,7 @@ class Playlist(name: String, description: String): Observable, InvalidationListe
         Files.lines(path).forEach {
             when
             {
-                it[0] == 's' -> addSong(MediaLibrary.songUUIDMap[UUID.fromString(it.substring(1))]!!)
+                it[0] == 's' -> addSong(MediaLibrary.sourceUUIDMap[UUID.fromString(it.substring(1))]!!)
                 it[0] == 'p' -> addPlaylist(MediaLibrary.getOrLoadPlaylist(it.substring(1)))
                 else -> System.err.println("Unknown entry in ${path.toAbsolutePath()}\n\t$it")
             }

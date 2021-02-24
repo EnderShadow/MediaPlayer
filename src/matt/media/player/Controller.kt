@@ -29,7 +29,6 @@ import javafx.util.Callback
 import javafx.util.Duration
 import matt.media.player.music.NewPlaylistController
 import org.controlsfx.control.PopOver
-import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
 
@@ -271,12 +270,12 @@ class Controller
         val chooser = FileChooser()
         chooser.showOpenMultipleDialog(window)?.forEach {
             val uri = it.toURI()
-            if(isValidAudioFile(uri) && uri !in MediaLibrary.songs.map {it.location})
+            if(isValidAudioUri(uri) && uri !in MediaLibrary.sources.map {it.location})
                 try
                 {
                     val audioSource = AudioSourceFactory(uri).build()
                     audioSource.readMetadataFromSource()
-                    MediaLibrary.addSong(audioSource)
+                    MediaLibrary.addSource(audioSource)
                 }
                 catch(_: IllegalArgumentException)
                 {
@@ -290,12 +289,12 @@ class Controller
     {
         val chooser = DirectoryChooser()
         chooser.showDialog(window)?.let {
-            it.walkTopDown().asSequence().filter {it.isFile && isValidAudioFile(it.toURI()) && it.toURI() !in MediaLibrary.songs.map {it.location}}.forEach {
+            it.walkTopDown().asSequence().filter {it.isFile && isValidAudioUri(it.toURI()) && it.toURI() !in MediaLibrary.sources.map {it.location}}.forEach {
                 try
                 {
                     val audioSource = AudioSourceFactory(it.toURI()).build()
                     audioSource.readMetadataFromSource()
-                    MediaLibrary.addSong(audioSource)
+                    MediaLibrary.addSource(audioSource)
                 }
                 catch(_: IllegalArgumentException)
                 {

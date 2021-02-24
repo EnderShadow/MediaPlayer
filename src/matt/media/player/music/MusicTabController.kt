@@ -126,7 +126,7 @@ class MusicTabController: TabController()
         artistColumn.setCellValueFactory {it.value.artistProperty}
         albumColumn.setCellValueFactory {it.value.albumProperty}
         
-        val filteredList = MediaLibrary.songs.filtered {doesAudioSourceMatch(it, rootController.filterField.textProperty())}
+        val filteredList = MediaLibrary.sources.filtered {doesAudioSourceMatch(it, rootController.filterField.textProperty())}
         rootController.filterField.textProperty().addListener {_: Observable -> filteredList.setPredicate {doesAudioSourceMatch(it, rootController.filterField.textProperty())}}
         val sortedList = filteredList.sorted()
         sortedList.comparatorProperty().bind(musicListTableView.comparatorProperty())

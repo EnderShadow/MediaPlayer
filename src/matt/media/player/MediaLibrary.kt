@@ -32,8 +32,8 @@ object MediaLibrary
     val loadingProperty = SimpleBooleanProperty(false)
     private var libraryDirty = false
     
-    val songs: ObservableList<AudioSource> = FXCollections.observableArrayList()
-    val songUUIDMap: ObservableMap<UUID, AudioSource> = FXCollections.observableHashMap()
+    val sources: ObservableList<AudioSource> = FXCollections.observableArrayList()
+    val sourceUUIDMap: ObservableMap<UUID, AudioSource> = FXCollections.observableHashMap()
     
     val playlists: ObservableList<Playlist> = FXCollections.observableArrayList()
     val playlistIcons: ObservableList<PlaylistTabController.PlaylistIcon> = FXCollections.observableArrayList()
@@ -68,7 +68,6 @@ object MediaLibrary
         if(Files.notExists(libraryFile) || Files.size(libraryFile) == 0L)
             return
         
-        val notFoundUris = mutableListOf<Pair<UUID, URI>>()
         val libraryJson = JSONObject(String(Files.readAllBytes(libraryFile)))
         val libraryVersion = libraryJson.getString("version")
         
@@ -120,18 +119,17 @@ object MediaLibrary
                         audioSourceFactory.dateAdded = LocalDateTime.ofEpochSecond(songJson.getLong("dateAdded"), songJson.getInt("dateAddedNano"), ZoneOffset.UTC)
                 }
                 
-                if(isValidAudioFile(uri))
-                    if(testUri(uri))
-                        addSong(audioSourceFactory.build())
-                    else
-                        notFoundUris.add(Pair(uuid, uri))
+                if(isValidAudioUri(uri))
+                    addSource(audioSourceFactory.build(!testUri(uri)))
             }
             catch(_: IllegalArgumentException) {
                 println("Failed to load song. Maybe it's not a song?: ${songJson.getString("uri")}")
             }
         }
-        if(notFoundUris.isNotEmpty()) {
-            val alertBox = AlertBox("Missing songs found", "${notFoundUris.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
+        
+        if(sources.any {it is NOPAudioSource}) {
+            val nopSources = sources.filterIsInstance(NOPAudioSource::class.java)
+            val alertBox = AlertBox("Missing songs found", "${nopSources.size} songs are in your library but cannot be found.", "Remove them" to MissingSongStrategy.REMOVE, "I'll tell you where they are" to MissingSongStrategy.LOCATE, "Exit the media player" to MissingSongStrategy.EXIT, "Ignore them" to MissingSongStrategy.IGNORE)
             alertBox.showAndWait()
             when(alertBox.returnValue ?: MissingSongStrategy.IGNORE) {
                 MissingSongStrategy.REMOVE -> markDirty()
@@ -139,30 +137,7 @@ object MediaLibrary
                     libraryDirty = false
                     exitProcess(0)
                 }
-                MissingSongStrategy.IGNORE -> {
-                    notFoundUris.forEach {(uuid, uri) ->
-                        val metadataFile = mediaDirectory.resolve("$uuid.metadata")
-        
-                        if(Files.exists(metadataFile)) {
-                            try {
-                                DataInputStream(
-                                    Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()
-                                ).use {dataInputStream ->
-                                    addSong(NOPAudioSource(uri, uuid, LocalDateTime.now(), dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readUTF(),
-                                        dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readInt(), dataInputStream.readInt(),
-                                        dataInputStream.readUTF(), Duration.millis(dataInputStream.readDouble())))
-                                }
-                
-                                Files.delete(metadataFile)
-                            } catch(ioe: IOException) {
-                                System.err.println("Failed to read song metadata from file")
-                            }
-                        }
-                        else {
-                            addSong(NOPAudioSource(uri, uuid, LocalDateTime.now()))
-                        }
-                    }
-                }
+                MissingSongStrategy.IGNORE -> {} // songs are already an instance of NOPAudioSource
                 MissingSongStrategy.LOCATE -> {
                     // TODO have user locate songs
                 }
@@ -186,11 +161,26 @@ object MediaLibrary
             }
     }
     
-    fun addSong(song: AudioSource)
+    fun addSource(source: AudioSource)
     {
-        songs.add(song)
-        songUUIDMap[song.uuid] = song
+        sources.add(source)
+        sourceUUIDMap[source.uuid] = source
         markDirty()
+    }
+    
+    /**
+     * returns true if nopSource was successfully replaced
+     */
+    fun replaceNOPSource(nopSource: NOPAudioSource, newSourceUri: URI): Boolean {
+        val index = sources.indexOf(nopSource)
+        // if nopSource is not in the library, do not add it
+        if(index < 0)
+            return false
+        val newSource = AudioSourceFactory(nopSource).build(false)
+        sources[index] = newSource
+        sourceUUIDMap[newSource.uuid] = newSource
+        markDirty()
+        return true
     }
     
     fun loadPlaylists()
@@ -275,8 +265,8 @@ object MediaLibrary
             }
         }
         
-        songs.remove(audioSource)
-        songUUIDMap.remove(audioSource.uuid)
+        sources.remove(audioSource)
+        sourceUUIDMap.remove(audioSource.uuid)
         if(!DEBUG)
         {
             markDirty()
@@ -298,7 +288,7 @@ object MediaLibrary
             return
         
         val songListJson = JSONArray()
-        songs.forEach {
+        sources.forEach {
             val songJson = JSONObject()
             songJson["uuid"] = it.uuid.toString()
             songJson["uri"] = it.location.toString()

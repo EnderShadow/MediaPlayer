@@ -30,6 +30,19 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
         }
     }
     
+    constructor(audioSource: AudioSource): this(audioSource.location, audioSource.uuid) {
+        title = audioSource.titleProperty.value
+        artist = audioSource.artistProperty.value
+        album = audioSource.albumProperty.value
+        genre = audioSource.genreProperty.value
+        albumArtist = audioSource.albumArtistProperty.value
+        trackCount = audioSource.trackCountProperty.value
+        trackNumber = audioSource.trackNumberProperty.value
+        year = audioSource.yearProperty.value
+        duration = audioSource.durationProperty.value
+        dateAdded = audioSource.dateAdded
+    }
+    
     var title = if(isFile(location)) File(location).nameWithoutExtension else "Unknown"
     var artist = "Unknown"
     var album = "Unknown"
@@ -41,8 +54,12 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
     var duration: Duration = Duration.ZERO
     var dateAdded: LocalDateTime = LocalDateTime.now()
     
-    fun build(): AudioSource {
-        val backer = audioSourceBackers.firstOrNull {it.second(location)}?.third ?: throw IllegalArgumentException("Unsupported audio format: $location")
+    fun build(buildNOP: Boolean): AudioSource {
+        val backer = if(buildNOP)
+            ::NOPAudioSource
+        else
+            audioSourceBackers.firstOrNull {it.second(location)}?.third ?: throw IllegalArgumentException("Unsupported audio format: $location")
+        
         return backer(location, uuid, dateAdded, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
     }
     

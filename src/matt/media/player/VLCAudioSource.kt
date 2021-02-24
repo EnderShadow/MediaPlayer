@@ -116,7 +116,7 @@ class VLCAudioSource(location: URI, uuid: UUID, dateAdded: LocalDateTime, title:
             })
         }
         
-        fun MediaPlayer.toAudioSource() = MediaLibrary.songs.first {it is VLCAudioSource && mediaMeta.title == it.titleProperty.value} as VLCAudioSource
+        fun MediaPlayer.toAudioSource() = MediaLibrary.sources.first {it is VLCAudioSource && mediaMeta.title == it.titleProperty.value} as VLCAudioSource
         
         fun shutdown()
         {
