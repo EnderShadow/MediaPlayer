@@ -12,12 +12,13 @@ import org.jaudiotagger.tag.FieldKey
 import java.io.*
 import java.net.URI
 import java.nio.file.Files
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.imageio.ImageIO
 import kotlin.concurrent.thread
 
-abstract class AudioSource(val location: URI, val uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration)
+abstract class AudioSource(val location: URI, val uuid: UUID, val dateAdded: LocalDateTime, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration)
 {
     companion object
     {

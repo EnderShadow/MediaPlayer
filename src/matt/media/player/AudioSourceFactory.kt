@@ -5,11 +5,12 @@ import org.freedesktop.gstreamer.Gst
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
+import java.time.LocalDateTime
 import java.util.*
 
 class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUID.randomUUID()) {
     companion object {
-        private val audioSourceBackers = PriorityQueue<Triple<Int, (URI) -> Boolean, (URI, UUID, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource>> {o1, o2 ->
+        private val audioSourceBackers = PriorityQueue<Triple<Int, (URI) -> Boolean, (URI, UUID, LocalDateTime, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource>> {o1, o2 ->
             o1.first.compareTo(o2.first)
         }
         
@@ -24,7 +25,7 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
                 registerBacker(-1, {GSTAudioSource.isSupported(it)}, ::GSTAudioSource)
         }
         
-        fun registerBacker(priority: Int, isSupported: (URI) -> Boolean, constructor: (URI, UUID, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource) {
+        fun registerBacker(priority: Int, isSupported: (URI) -> Boolean, constructor: (URI, UUID, LocalDateTime, String, String, String, String, String, Int, Int, String, Duration) -> AudioSource) {
             audioSourceBackers.add(Triple(priority, isSupported, constructor))
         }
     }
@@ -38,10 +39,11 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
     var trackNumber = 0
     var year = ""
     var duration: Duration = Duration.ZERO
+    var dateAdded: LocalDateTime = LocalDateTime.now()
     
     fun build(): AudioSource {
         val backer = audioSourceBackers.firstOrNull {it.second(location)}?.third ?: throw IllegalArgumentException("Unsupported audio format: $location")
-        return backer(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
+        return backer(location, uuid, dateAdded, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
     }
     
     fun setTitle(newTitle: String): AudioSourceFactory {
@@ -86,6 +88,11 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
     
     fun setDuration(newDuration: Duration): AudioSourceFactory {
         duration = newDuration
+        return this
+    }
+    
+    fun setDateAdded(newDateAdded: LocalDateTime): AudioSourceFactory {
+        dateAdded = newDateAdded
         return this
     }
 }

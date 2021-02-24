@@ -17,13 +17,15 @@ import java.io.IOException
 import java.lang.IllegalArgumentException
 import java.net.URI
 import java.nio.file.*
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.*
 import kotlin.ConcurrentModificationException
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.system.exitProcess
 
-private const val LIBRARY_FORMAT_VERSION = "1.1"
+private const val LIBRARY_FORMAT_VERSION = "1.2"
 
 object MediaLibrary
 {
@@ -114,6 +116,8 @@ object MediaLibrary
                     audioSourceFactory.trackNumber = songJson.getInt("trackNumber")
                     audioSourceFactory.year = songJson.getString("year")
                     audioSourceFactory.duration = Duration.millis(songJson.getDouble("duration"))
+                    if(libraryVersion >= "1.2")
+                        audioSourceFactory.dateAdded = LocalDateTime.ofEpochSecond(songJson.getLong("dateAdded"), songJson.getInt("dateAddedNano"), ZoneOffset.UTC)
                 }
                 
                 if(isValidAudioFile(uri))
@@ -144,7 +148,7 @@ object MediaLibrary
                                 DataInputStream(
                                     Files.newInputStream(metadataFile, StandardOpenOption.READ).buffered()
                                 ).use {dataInputStream ->
-                                    addSong(NOPAudioSource(uri, uuid, dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readUTF(),
+                                    addSong(NOPAudioSource(uri, uuid, LocalDateTime.now(), dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readUTF(),
                                         dataInputStream.readUTF(), dataInputStream.readUTF(), dataInputStream.readInt(), dataInputStream.readInt(),
                                         dataInputStream.readUTF(), Duration.millis(dataInputStream.readDouble())))
                                 }
@@ -155,7 +159,7 @@ object MediaLibrary
                             }
                         }
                         else {
-                            addSong(NOPAudioSource(uri, uuid))
+                            addSong(NOPAudioSource(uri, uuid, LocalDateTime.now()))
                         }
                     }
                 }
@@ -307,6 +311,8 @@ object MediaLibrary
             songJson["trackNumber"] = it.trackNumberProperty.value
             songJson["year"] = it.yearProperty.value
             songJson["duration"] = it.durationProperty.value.toMillis()
+            songJson["dateAdded"] = it.dateAdded.toEpochSecond(ZoneOffset.UTC)
+            songJson["dateAddedNano"] = it.dateAdded.nano
             songListJson.put(songJson)
         }
         val libraryJson = JSONObject()

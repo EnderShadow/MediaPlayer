@@ -7,11 +7,12 @@ import org.freedesktop.gstreamer.*
 import org.freedesktop.gstreamer.elements.PlayBin
 import org.freedesktop.gstreamer.event.SeekFlags
 import java.net.URI
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.scheduleAtFixedRate
 
-class GSTAudioSource(location: URI, uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration) {
+class GSTAudioSource(location: URI, uuid: UUID, dateAdded: LocalDateTime, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, dateAdded, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration) {
     companion object {
         fun isSupported(uri: URI) = gstDetected()
         fun gstDetected() = Gst.isInitialized()

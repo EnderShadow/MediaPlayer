@@ -14,11 +14,12 @@ import java.io.File
 import java.lang.Exception
 import java.net.URI
 import java.nio.file.Files
+import java.time.LocalDateTime
 import java.util.*
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
-class VLCAudioSource(location: URI, uuid: UUID, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
+class VLCAudioSource(location: URI, uuid: UUID, dateAdded: LocalDateTime, title: String, artist: String, album: String, genre: String, albumArtist: String, trackCount: Int, trackNumber: Int, year: String, duration: Duration): AudioSource(location, uuid, dateAdded, title, artist, album, genre, albumArtist, trackCount, trackNumber, year, duration)
 {
     companion object
     {
