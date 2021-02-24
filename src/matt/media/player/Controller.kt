@@ -273,7 +273,7 @@ class Controller
             if(isValidAudioUri(uri) && uri !in MediaLibrary.sources.map {it.location})
                 try
                 {
-                    val audioSource = AudioSourceFactory(uri).build()
+                    val audioSource = AudioSourceFactory(uri).build(false)
                     audioSource.readMetadataFromSource()
                     MediaLibrary.addSource(audioSource)
                 }
@@ -292,7 +292,7 @@ class Controller
             it.walkTopDown().asSequence().filter {it.isFile && isValidAudioUri(it.toURI()) && it.toURI() !in MediaLibrary.sources.map {it.location}}.forEach {
                 try
                 {
-                    val audioSource = AudioSourceFactory(it.toURI()).build()
+                    val audioSource = AudioSourceFactory(it.toURI()).build(false)
                     audioSource.readMetadataFromSource()
                     MediaLibrary.addSource(audioSource)
                 }
