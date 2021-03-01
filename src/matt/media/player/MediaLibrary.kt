@@ -176,7 +176,7 @@ object MediaLibrary
         // if nopSource is not in the library, do not add it
         if(index < 0)
             return false
-        val newSource = AudioSourceFactory(nopSource).build(false)
+        val newSource = AudioSourceFactory(nopSource, newSourceUri).build(false)
         sources[index] = newSource
         sourceUUIDMap[newSource.uuid] = newSource
         markDirty()

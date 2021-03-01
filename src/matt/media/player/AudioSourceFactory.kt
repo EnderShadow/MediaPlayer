@@ -30,7 +30,7 @@ class AudioSourceFactory(private val location: URI, private val uuid: UUID = UUI
         }
     }
     
-    constructor(audioSource: AudioSource): this(audioSource.location, audioSource.uuid) {
+    constructor(audioSource: AudioSource, newURI: URI = audioSource.location): this(audioSource.location, audioSource.uuid) {
         title = audioSource.titleProperty.value
         artist = audioSource.artistProperty.value
         album = audioSource.albumProperty.value
