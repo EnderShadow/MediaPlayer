@@ -40,21 +40,8 @@ class NewPlaylistController
         val name = playlistName.text
         if(MediaLibrary.playlists.none {it.name == name})
         {
-            try
-            {
-                // make sure file is a valid name
-                val tempFile = File(tempDirectory, name)
-                tempFile.createNewFile()
-                tempFile.delete()
-                
-                createdPlaylist = Playlist(name, playlistDescription.text)
-                window.hide()
-            }
-            catch(_: Exception)
-            {
-                if("error" !in playlistName.styleClass)
-                    playlistName.styleClass.add("error")
-            }
+            createdPlaylist = Playlist.createPlaylist(name, playlistDescription.text)
+            window.hide()
         }
         else
         {

@@ -7,17 +7,64 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
+import org.json.JSONArray
+import org.json.JSONObject
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
 
-class Playlist(name: String, description: String): Observable, InvalidationListener
+private const val PLAYLIST_FORMAT_VERSION = "1.0"
+
+class Playlist private constructor(name: String, description: String, val uuid: UUID, private var initFunction: Playlist.() -> Unit): Observable, InvalidationListener
 {
-    // Playlist extension
-    companion object
-    {
-        const val EXTENSION = "rmppl"
+    companion object {
+        fun loadPlaylist(path: Path): Playlist {
+            when(path.extension) {
+                "json" -> {
+                    val jsonObj = JSONObject(String(Files.readAllBytes(path)))
+                    val version = jsonObj.getString("version")
+                    val name = jsonObj.getString("name")
+                    val description = jsonObj.getString("description")
+                    val uuid = UUID.fromString(jsonObj.getString("uuid"))
+                    return Playlist(name, description, uuid) {
+                        val sources = jsonObj.getJSONArray("sources")
+                        sources.forEach {source ->
+                            source as JSONObject
+                            val type = source.getString("type")
+                            val sourceUUID = UUID.fromString(source.getString("uuid"))
+                            when(type) {
+                                "song" -> initAddSong(MediaLibrary.sourceUUIDMap[sourceUUID]!!)
+                                "playlist" -> initAddPlaylist(MediaLibrary.playlists.first {it.uuid == sourceUUID})
+                                else -> System.err.println("Unknown entry type in playlist $name: $type")
+                            }
+                        }
+                        dirty = false
+                    }
+                }
+                "rmppl" -> {
+                    return Playlist(path.nameWithoutExtension, "", UUID.randomUUID()) {
+                        Files.lines(path).forEach {
+                            when {
+                                it[0] == 's' -> initAddSong(MediaLibrary.sourceUUIDMap[UUID.fromString(it.substring(1))]!!)
+                                it[0] == 'p' -> initAddPlaylist(MediaLibrary.playlists.first {playlist -> playlist.name == it.substring(1)})
+                                else -> System.err.println("Unknown entry in ${path.toAbsolutePath()}\n\t$it")
+                            }
+                        }
+                        dirty = true
+                        save(path.parent)
+                        Files.deleteIfExists(path)
+                    }
+                }
+                else -> {
+                    throw IllegalArgumentException("Unsupported playlist extension: ${path.extension}")
+                }
+            }
+        }
+        
+        fun createPlaylist(name: String, description: String): Playlist {
+            return Playlist(name, description, UUID.randomUUID()) {}
+        }
     }
     
     private val listeners = mutableListOf<InvalidationListener>()
@@ -41,17 +88,12 @@ class Playlist(name: String, description: String): Observable, InvalidationListe
     private val playlists = mutableListOf<Playlist>()
     var dirty = true
     
-    constructor(path: Path): this(path.nameWithoutExtension, "")
-    {
-        Files.lines(path).forEach {
-            when
-            {
-                it[0] == 's' -> addSong(MediaLibrary.sourceUUIDMap[UUID.fromString(it.substring(1))]!!)
-                it[0] == 'p' -> addPlaylist(MediaLibrary.getOrLoadPlaylist(it.substring(1)))
-                else -> System.err.println("Unknown entry in ${path.toAbsolutePath()}\n\t$it")
-            }
+    // must be called after instantiation to populate the playlist with it's contents
+    fun init() {
+        synchronized(this) {
+            initFunction()
+            initFunction = {}
         }
-        dirty = false
     }
     
     /**
@@ -110,6 +152,15 @@ class Playlist(name: String, description: String): Observable, InvalidationListe
             it.getPlaylist().getDuration()
     }.fold(Duration.ZERO, Duration::add)
     
+    /**
+     * This function is specifically only used by playlists that are loaded from files at program startup. It removes
+     * a lot of extra code which isn't needed at this time in order to speed up playlist loading by a factor of approximately 20.
+     */
+    private fun initAddSong(audioSource: AudioSource) {
+        contents.add(SongHandle(audioSource))
+        numSongs++
+    }
+    
     fun addSong(index: Int, audioSource: AudioSource)
     {
         if(index < 0 || index > contents.size)
@@ -124,6 +175,16 @@ class Playlist(name: String, description: String): Observable, InvalidationListe
     }
     
     fun addSong(audioSource: AudioSource) = addSong(contents.size, audioSource)
+    
+    /**
+     * This function is specifically only used by playlists that are loaded from files at program startup. It removes
+     * a lot of extra code which isn't needed at this time in order to speed up playlist loading by a factor of approximately 20.
+     */
+    private fun initAddPlaylist(playlist: Playlist) {
+        contents.add(PlaylistHandle(playlist))
+        playlists.add(playlist)
+        playlist.addListener(this)
+    }
     
     fun addPlaylist(index: Int, playlist: Playlist, addMode: PlaylistAddMode = PlaylistAddMode.REFERENCE)
     {
@@ -299,14 +360,25 @@ class Playlist(name: String, description: String): Observable, InvalidationListe
         if(Files.notExists(savePath))
             Files.createDirectories(savePath)
         
-        val saveLoc = savePath.resolve("$name.$EXTENSION")
-        val data = contents.map {
-            if(it is SongHandle)
-                "s${it.getCurrentAudioSource().uuid}"
-            else
-                "p${it.getPlaylist().name}"
-        }
-        Files.write(saveLoc, data, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+        val saveLoc = savePath.resolve("$uuid.json")
+        val jsonObj = JSONObject()
+        jsonObj["version"] = PLAYLIST_FORMAT_VERSION
+        jsonObj["name"] = name
+        jsonObj["description"] = description
+        jsonObj["uuid"] = uuid.toString()
+        jsonObj["sources"] = JSONArray(contents.map {
+            val source = JSONObject()
+            if(it is SongHandle) {
+                source["type"] = "song"
+                source["uuid"] = it.getCurrentAudioSource().uuid.toString()
+            }
+            else {
+                source["type"] = "playlist"
+                source["uuid"] = it.getPlaylist().uuid.toString()
+            }
+            source
+        })
+        Files.write(saveLoc, jsonObj.toString().toByteArray(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         dirty = false
     }
     

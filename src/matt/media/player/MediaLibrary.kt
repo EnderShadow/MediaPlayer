@@ -185,18 +185,15 @@ object MediaLibrary
     
     fun loadPlaylists()
     {
-        for(path in Files.newDirectoryStream(playlistDirectory).filter {it.extension == Playlist.EXTENSION})
-            if(!isPlaylistLoaded(path.nameWithoutExtension))
-                addPlaylist(Playlist(path))
+        for(path in Files.newDirectoryStream(playlistDirectory))
+            if(path.extension == "json" || path.extension == "rmppl")
+                addPlaylist(Playlist.loadPlaylist(path))
+        
+        playlists.forEach(Playlist::init)
         
         recentPlaylists.clear()
         val lastFiveStartIndex = max(playlists.size - 5, 0)
         recentPlaylists.addAll(playlists.subList(lastFiveStartIndex, playlists.size).reversed())
-    }
-    
-    fun getOrLoadPlaylist(name: String): Playlist
-    {
-        return playlists.find {it.name.equals(name, true)} ?: addPlaylist(Playlist(playlistDirectory.resolve("$name.${Playlist.EXTENSION}")))
     }
     
     fun addPlaylist(playlist: Playlist): Playlist
@@ -211,8 +208,6 @@ object MediaLibrary
         
         return playlist
     }
-    
-    private fun isPlaylistLoaded(name: String) = playlists.any {it.name.equals(name, true)}
     
     fun removePlaylist(playlist: Playlist)
     {
@@ -239,7 +234,7 @@ object MediaLibrary
                 Player.stop(false)
             }
         }
-        Files.deleteIfExists(playlistDirectory.resolve("${playlist.name}.${Playlist.EXTENSION}"))
+        Files.deleteIfExists(playlistDirectory.resolve("${playlist.uuid}.json"))
     }
     
     fun removeSong(audioSource: AudioSource)
