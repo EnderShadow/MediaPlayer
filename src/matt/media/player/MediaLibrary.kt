@@ -69,7 +69,7 @@ object MediaLibrary
             return
         
         val libraryJson = JSONObject(String(Files.readAllBytes(libraryFile)))
-        val libraryVersion = libraryJson.getString("version")
+        val libraryVersion = Version(libraryJson.getString("version"))
         
         val songsListJson = libraryJson.getJSONArray("songs")
         songsListJson.forEach {
@@ -80,7 +80,7 @@ object MediaLibrary
                 
                 val audioSourceFactory = AudioSourceFactory(uri, uuid)
                 
-                if(libraryVersion < "1.1") {
+                if(libraryVersion < Version("1.1")) {
                     val metadataFile = mediaDirectory.resolve("$uuid.metadata")
     
                     if(Files.exists(metadataFile)) try
@@ -115,7 +115,7 @@ object MediaLibrary
                     audioSourceFactory.trackNumber = songJson.getInt("trackNumber")
                     audioSourceFactory.year = songJson.getString("year")
                     audioSourceFactory.duration = Duration.millis(songJson.getDouble("duration"))
-                    if(libraryVersion >= "1.2")
+                    if(libraryVersion >= Version("1.2"))
                         audioSourceFactory.dateAdded = LocalDateTime.ofEpochSecond(songJson.getLong("dateAdded"), songJson.getInt("dateAddedNano"), ZoneOffset.UTC)
                 }
                 
