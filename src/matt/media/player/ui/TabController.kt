@@ -1,4 +1,4 @@
-package matt.media.player
+package matt.media.player.ui
 
 abstract class TabController
 {

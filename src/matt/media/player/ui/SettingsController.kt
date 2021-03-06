@@ -1,4 +1,4 @@
-package matt.media.player
+package matt.media.player.ui
 
 import javafx.fxml.FXML
 import javafx.scene.control.CheckBox
@@ -7,8 +7,11 @@ import javafx.scene.control.TextField
 import javafx.stage.DirectoryChooser
 import javafx.stage.Window
 import javafx.util.StringConverter
+import matt.media.player.Config
+import matt.media.player.ConfigKey
+import matt.media.player.Playlist
+import matt.media.player.isValidFilename
 
-import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths

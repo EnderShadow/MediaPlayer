@@ -7,6 +7,7 @@ import javafx.embed.swing.SwingFXUtils
 import javafx.scene.image.Image
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
+import matt.media.player.ui.initializing
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import java.io.*

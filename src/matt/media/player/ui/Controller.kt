@@ -1,4 +1,4 @@
-package matt.media.player
+package matt.media.player.ui
 
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
@@ -27,7 +27,7 @@ import javafx.scene.text.Text
 import javafx.stage.*
 import javafx.util.Callback
 import javafx.util.Duration
-import matt.media.player.ui.NewPlaylistController
+import matt.media.player.*
 import org.controlsfx.control.PopOver
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
@@ -74,7 +74,9 @@ class Controller
         
         playButtonIcon.visibleProperty().bind(Player.playing.not())
         pauseButtonIcon.visibleProperty().bind(Player.playing)
-        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
+        playButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()},
+            Player.rootQueuePlaylist
+        ))
         
         val timeChangeListener = InvalidationListener {
             if(Player.currentlyPlaying.value is SongHandle)
@@ -133,8 +135,12 @@ class Controller
         loopIcon2.fillProperty().bind(colorBinding)
         loopSingleIcon.visibleProperty().bind(Player.loopMode.isEqualTo(LoopMode.SINGLE))
         
-        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
-        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()}, Player.rootQueuePlaylist))
+        previousSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()},
+            Player.rootQueuePlaylist
+        ))
+        nextSongButton.disableProperty().bind(Bindings.createBooleanBinding(Callable {Player.rootQueuePlaylist.isRecursivelyEmpty()},
+            Player.rootQueuePlaylist
+        ))
         
         colorBinding = Bindings.`when`(Player.shuffling).then(Color.valueOf("#FF7300")).otherwise(Color.valueOf("BLACK"))
         shuffleIcon1.strokeProperty().bind(colorBinding)
@@ -149,8 +155,8 @@ class Controller
             filterField.text = ""
         }
         
-        registerTab("ui/MusicTab.fxml", "Music")
-        registerTab("ui/PlaylistTab.fxml", "Playlists")
+        registerTab("MusicTab.fxml", "Music")
+        registerTab("PlaylistTab.fxml", "Playlists")
         //registerTab("music/AlbumTab.fxml", "Albums")
         //registerTab("music/ArtistTab.fxml", "Artists")
         //registerTab("music/GenreTab.fxml", "Genres")
@@ -246,7 +252,7 @@ class Controller
     fun requestCreatePlaylist(): Playlist?
     {
         val stage = Stage()
-        val loader = FXMLLoader(javaClass.getResource("music/NewPlaylist.fxml"))
+        val loader = FXMLLoader(javaClass.getResource("NewPlaylist.fxml"))
         val node: Parent = loader.load()
         val controller: NewPlaylistController = loader.getController()
         controller.window = stage
@@ -384,7 +390,7 @@ class Controller
         
         private fun initPlaylistView()
         {
-            playlistViewTableView.stylesheets.add("matt/media/player/music/PlaylistViewer.css")
+            playlistViewTableView.stylesheets.add("matt/media/player/ui/PlaylistViewer.css")
             
             val playlist = Player.rootQueuePlaylist
             
@@ -639,7 +645,8 @@ class Controller
                     Bindings.createStringBinding(Callable {formatDuration(it.value.getCurrentAudioSource().durationProperty.value)}, it.value.getCurrentAudioSource().durationProperty)
             }
     
-            addEventHandler(EventType.ROOT) {getVisible(playlistViewTableView).forEach {
+            addEventHandler(EventType.ROOT) {
+                getVisible(playlistViewTableView).forEach {
                 if(it !is PlaylistHandle || !it.getPlaylist().isRecursivelyEmpty())
                     it.getAudioSource(0).loadImage()}
             }

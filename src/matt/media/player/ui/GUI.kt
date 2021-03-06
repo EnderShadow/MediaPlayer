@@ -1,4 +1,4 @@
-package matt.media.player
+package matt.media.player.ui
 
 import com.sun.jna.Native
 import com.sun.jna.NativeLibrary
@@ -8,6 +8,7 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Modality
 import javafx.stage.Stage
+import matt.media.player.*
 import uk.co.caprica.vlcj.discovery.NativeDiscovery
 
 fun main(args: Array<String>)
@@ -36,7 +37,7 @@ class GUI: Application()
         val root: Parent = loader.load()
         primaryStage.title = "Resonant Music Player"
         val scene = Scene(root)
-        scene.stylesheets.add("matt/media/player/GUI.css")
+        scene.stylesheets.add("matt/media/player/ui/GUI.css")
         primaryStage.scene = scene
         val controller: Controller = loader.getController()
         controller.window = primaryStage
@@ -77,7 +78,7 @@ class GUI: Application()
         val root: Parent = loader.load()
         stage.title = "Settings"
         stage.scene = Scene(root)
-        stage.scene.stylesheets.add("matt/media/player/Settings.css")
+        stage.scene.stylesheets.add("matt/media/player/ui/Settings.css")
         val controller: SettingsController = loader.getController()
         controller.window = stage
         

@@ -1,4 +1,4 @@
-package matt.media.player
+package matt.media.player.ui
 
 import javafx.geometry.Insets
 import javafx.geometry.Pos

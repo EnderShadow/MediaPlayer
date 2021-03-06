@@ -372,7 +372,7 @@ class PlaylistTabController: TabController()
             loader.setRoot(this)
             loader.setController(this)
             loader.load<Any?>()
-            stylesheets.add("matt/media/player/music/PlaylistViewer.css")
+            stylesheets.add("matt/media/player/ui/PlaylistViewer.css")
         
             val play = MenuItem("Play")
             play.setOnAction {

@@ -8,6 +8,7 @@ import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.scene.media.MediaPlayer
 import javafx.util.Duration
+import matt.media.player.ui.AlertBox
 import matt.media.player.ui.PlaylistTabController
 import org.json.JSONArray
 import org.json.JSONObject
