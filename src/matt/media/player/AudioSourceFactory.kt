@@ -1,7 +1,6 @@
 package matt.media.player
 
 import javafx.util.Duration
-import org.freedesktop.gstreamer.Gst
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.net.URI
