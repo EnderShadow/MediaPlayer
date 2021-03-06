@@ -27,7 +27,7 @@ import javafx.scene.text.Text
 import javafx.stage.*
 import javafx.util.Callback
 import javafx.util.Duration
-import matt.media.player.music.NewPlaylistController
+import matt.media.player.ui.NewPlaylistController
 import org.controlsfx.control.PopOver
 import java.lang.IllegalArgumentException
 import java.util.concurrent.Callable
@@ -149,8 +149,8 @@ class Controller
             filterField.text = ""
         }
         
-        registerTab("music/MusicTab.fxml", "Music")
-        registerTab("music/PlaylistTab.fxml", "Playlists")
+        registerTab("ui/MusicTab.fxml", "Music")
+        registerTab("ui/PlaylistTab.fxml", "Playlists")
         //registerTab("music/AlbumTab.fxml", "Albums")
         //registerTab("music/ArtistTab.fxml", "Artists")
         //registerTab("music/GenreTab.fxml", "Genres")

@@ -1,4 +1,4 @@
-package matt.media.player.music
+package matt.media.player.ui
 
 import javafx.application.Platform
 import javafx.beans.InvalidationListener

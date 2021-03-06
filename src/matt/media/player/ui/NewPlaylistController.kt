@@ -1,4 +1,4 @@
-package matt.media.player.music
+package matt.media.player.ui
 
 import javafx.fxml.FXML
 import javafx.scene.control.TextArea
@@ -8,9 +8,6 @@ import javafx.scene.input.KeyEvent
 import javafx.stage.Window
 import matt.media.player.MediaLibrary
 import matt.media.player.Playlist
-import matt.media.player.tempDirectory
-import java.io.File
-import java.lang.Exception
 
 class NewPlaylistController
 {

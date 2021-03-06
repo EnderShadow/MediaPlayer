@@ -1,4 +1,4 @@
-package matt.media.player.music
+package matt.media.player.ui
 
 import javafx.beans.Observable
 import javafx.beans.binding.Bindings
